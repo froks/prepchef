@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { activeMinutes, isLowCarb, isLowEffort, isQuick, totalMinutes } from '../../../server/src/domain/traits.ts';
 import { api } from '../api.ts';
+import { ConfirmButton } from '../components/ConfirmButton.tsx';
+import { openExternal } from '../desktop.ts';
 import { DIET_LABEL, formatAmount, formatMinutes, MEAL_LABEL, PREFERENCE_HINT } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
 
@@ -18,7 +20,6 @@ export function RecipeDetailPage() {
   const factor = portions / recipe.servings;
 
   async function remove() {
-    if (!confirm(`„${recipe!.title}" wirklich löschen?`)) return;
     await api.deleteRecipe(recipe!.id);
     navigate('/rezepte');
   }
@@ -69,9 +70,9 @@ export function RecipeDetailPage() {
           <Link className="button" to={`/rezepte/${recipe.id}/bearbeiten`}>
             Bearbeiten
           </Link>
-          <button className="danger" onClick={remove}>
+          <ConfirmButton className="danger" onConfirm={remove} confirmLabel="Wirklich löschen?">
             Löschen
-          </button>
+          </ConfirmButton>
         </div>
       </header>
 
@@ -137,7 +138,15 @@ export function RecipeDetailPage() {
           {recipe.sourceUrl && (
             <p className="small">
               Quelle:{' '}
-              <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+              <a
+                href={recipe.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openExternal(recipe.sourceUrl!);
+                }}
+              >
                 {new URL(recipe.sourceUrl).hostname}
               </a>
             </p>

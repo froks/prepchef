@@ -2,8 +2,11 @@
 /**
  * Baut PrepChef als eigenständige ausführbare Datei (Frontend eingebettet, keine Installation von Node/Bun nötig).
  *
- *   bun run package            → dist/prepchef (für dieses System)
- *   bun run package --all      → zusätzlich Linux, Windows und macOS (x64/arm64)
+ *   bun run package                          → dist/prepchef (für dieses System)
+ *   bun run package --all                    → Linux, Windows und macOS (x64/arm64)
+ *   bun run package --targets linux-x64,…    → nur diese (Namen wie in TARGETS ohne „prepchef-")
+ *
+ * Für Windows ohne Konsolenfenster und mit Icon muss auf Windows selbst gebaut werden.
  */
 import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
@@ -21,12 +24,27 @@ const buildDir = join(root, 'build');
 const outDir = join(root, 'dist');
 
 const TARGETS = [
-  { target: 'bun-linux-x64', file: 'prepchef-linux-x64' },
-  { target: 'bun-linux-arm64', file: 'prepchef-linux-arm64' },
-  { target: 'bun-windows-x64', file: 'prepchef-windows-x64.exe' },
-  { target: 'bun-darwin-x64', file: 'prepchef-macos-x64' },
-  { target: 'bun-darwin-arm64', file: 'prepchef-macos-arm64' },
+  { name: 'linux-x64', target: 'bun-linux-x64', file: 'prepchef-linux-x64' },
+  { name: 'linux-arm64', target: 'bun-linux-arm64', file: 'prepchef-linux-arm64' },
+  { name: 'windows-x64', target: 'bun-windows-x64', file: 'prepchef-windows-x64.exe' },
+  { name: 'macos-x64', target: 'bun-darwin-x64', file: 'prepchef-macos-x64' },
+  { name: 'macos-arm64', target: 'bun-darwin-arm64', file: 'prepchef-macos-arm64' },
 ];
+
+function selectTargets(): { target?: string; file: string }[] {
+  const i = process.argv.indexOf('--targets');
+  if (i >= 0) {
+    const names = (process.argv[i + 1] ?? '').split(',').filter(Boolean);
+    const unknown = names.filter((n) => !TARGETS.some((t) => t.name === n));
+    if (!names.length || unknown.length) {
+      console.error(`Unbekannte Ziele: ${unknown.join(', ') || '(keine)'} – möglich: ${TARGETS.map((t) => t.name).join(', ')}`);
+      process.exit(2);
+    }
+    return TARGETS.filter((t) => names.includes(t.name));
+  }
+  if (process.argv.includes('--all')) return TARGETS;
+  return [{ file: process.platform === 'win32' ? 'prepchef.exe' : 'prepchef' }];
+}
 
 async function listFiles(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true, recursive: true });
@@ -48,22 +66,38 @@ await writeFile(
   entry,
   `// Automatisch erzeugt von scripts/package.ts – nicht bearbeiten.
 ${imports.join('\n')}
-import { embeddedAssets } from '../server/src/assets.ts';
 import { runStandalone } from '../server/src/standalone.ts';
 
-await runStandalone(embeddedAssets(new Map<string, string>([
+await runStandalone({
+  assets: {
+    kind: 'embedded',
+    files: [
 ${entries.join('\n')}
-])));
+    ],
+  },
+  // Pfad relativ zur Wurzel aller Einstiegspunkte (build/ und server/ → Repository).
+  workerSpec: './server/src/server-worker.ts',
+});
 `,
 );
 console.log(`▸ ${files.length} Frontend-Dateien eingebettet, Version ${version}`);
 
+// Der Server läuft im Fenster-Modus in einem Worker-Thread und braucht einen eigenen Einstiegspunkt.
+const worker = join(root, 'server', 'src', 'server-worker.ts');
+
+/** Kein Konsolenfenster und ein eigenes Icon – setzt Bun nur beim Kompilieren auf Windows selbst um. */
+function windowsFlags(target: string | undefined): string[] {
+  const forWindows = target ? target.includes('windows') : process.platform === 'win32';
+  if (!forWindows || process.platform !== 'win32') return [];
+  return ['--windows-hide-console', `--windows-icon=${join(root, 'client', 'public', 'icon.ico')}`, '--windows-title=PrepChef'];
+}
+
 await mkdir(outDir, { recursive: true });
-const targets = process.argv.includes('--all') ? TARGETS : [{ target: undefined, file: process.platform === 'win32' ? 'prepchef.exe' : 'prepchef' }];
+const targets = selectTargets();
 for (const { target, file } of targets) {
   const outfile = join(outDir, file);
   console.log(`▸ Kompiliere ${relative(root, outfile)}${target ? ` (${target})` : ''} …`);
-  await $`bun build ${entry} --compile --minify --define ${`process.env.PREPCHEF_VERSION=${JSON.stringify(version)}`} ${target ? [`--target=${target}`] : []} --outfile ${outfile}`
+  await $`bun build ${entry} ${worker} --compile --minify --define ${`process.env.PREPCHEF_VERSION=${JSON.stringify(version)}`} ${target ? [`--target=${target}`] : []} ${windowsFlags(target)} --outfile ${outfile}`
     .cwd(root)
     .quiet();
 }

@@ -9,7 +9,8 @@
     "typecheck": "tsc -p ."
   },
   "dependencies": {
-    "fastify": "^5.12.7"
+    "fastify": "^5.12.7",
+    "webview-bun": "2.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

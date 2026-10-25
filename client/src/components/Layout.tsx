@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { isDesktopWindow, quitApp } from '../desktop.ts';
+import { ConfirmButton } from './ConfirmButton.tsx';
 
 export function Layout() {
   // Nur die Desktop-App erlaubt das Beenden aus der Oberfläche heraus.
@@ -14,9 +16,10 @@ export function Layout() {
   }, []);
 
   async function shutdown() {
-    if (!confirm('PrepChef beenden? Deine Daten sind gespeichert.')) return;
-    await fetch('/api/shutdown', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
-    setStopped(true);
+    // Im App-Fenster schließt sich das Fenster selbst; im Browser bleibt der Tab mit einem Hinweis offen.
+    const inWindow = isDesktopWindow();
+    await quitApp();
+    if (!inWindow) setStopped(true);
   }
 
   if (stopped) {
@@ -41,9 +44,9 @@ export function Layout() {
           <NavLink to="/plaene">Pläne</NavLink>
           <NavLink to="/rezepte">Rezepte</NavLink>
           {canShutdown && (
-            <button className="quit no-print" onClick={shutdown} title="Server beenden">
+            <ConfirmButton className="quit no-print" onConfirm={shutdown} confirmLabel="Wirklich beenden?" title="PrepChef beenden – deine Daten sind gespeichert">
               Beenden
-            </button>
+            </ConfirmButton>
           )}
         </nav>
       </header>

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { api, type ExpandedPlan } from '../api.ts';
+import { copyText } from '../desktop.ts';
 import { CATEGORY_LABEL, formatAmount } from '../labels.ts';
 
 export function ShoppingList({ plan, onChecked }: { plan: ExpandedPlan; onChecked: (checked: string[]) => void }) {
@@ -26,7 +27,7 @@ export function ShoppingList({ plan, onChecked }: { plan: ExpandedPlan; onChecke
             .join('\n')}`,
       )
       .join('\n\n');
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

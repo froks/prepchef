@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, type ExpandedPlan, type MealType } from '../api.ts';
+import { ConfirmButton } from '../components/ConfirmButton.tsx';
 import { NutritionView } from '../components/NutritionView.tsx';
 import { PrepTimeline } from '../components/PrepTimeline.tsx';
 import { ShoppingList } from '../components/ShoppingList.tsx';
@@ -24,16 +25,18 @@ export function PlanPage() {
   const tab = (TABS.find(([key]) => key === params.get('tab'))?.[0] ?? 'woche') as Tab;
   const setTab = (t: Tab) => setParams(t === 'woche' ? {} : { tab: t }, { replace: true });
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (loading && !plan) return <p className="muted">Lade Plan …</p>;
   if (error || !plan) return <p className="error">{error ?? 'Plan nicht gefunden'}</p>;
 
   async function run(action: () => Promise<void>) {
     setBusy(true);
+    setActionError(null);
     try {
       await action();
     } catch (err) {
-      alert((err as Error).message);
+      setActionError((err as Error).message);
     } finally {
       setBusy(false);
     }
@@ -47,7 +50,6 @@ export function PlanPage() {
 
   const remove = () =>
     run(async () => {
-      if (!confirm('Diesen Plan löschen?')) return;
       await api.deletePlan(plan.id);
       navigate('/plaene');
     });
@@ -73,11 +75,13 @@ export function PlanPage() {
             Neu würfeln
           </button>
           <button onClick={() => window.print()}>Drucken</button>
-          <button className="danger" onClick={remove} disabled={busy}>
+          <ConfirmButton className="danger" onConfirm={remove} disabled={busy} confirmLabel="Wirklich löschen?">
             Löschen
-          </button>
+          </ConfirmButton>
         </div>
       </header>
+
+      {actionError && <p className="error">{actionError}</p>}
 
       {plan.data.warnings.length > 0 && (
         <ul className="warnings">

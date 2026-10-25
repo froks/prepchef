@@ -23,9 +23,16 @@ Die Screenshots erzeugt `bun run screenshots` neu (Demo-Daten, Chromium wird fer
 ## Herunterladen
 
 Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases**: Datei für das eigene System herunterladen,
-ausführbar machen (`chmod +x prepchef-linux-x64`) und starten. Die Dateien sind nicht signiert – Windows
-(SmartScreen) und macOS (Gatekeeper) warnen daher beim ersten Start; unter macOS hilft
-`xattr -d com.apple.quarantine prepchef-macos-arm64`. Prüfsummen stehen in `SHA256SUMS`.
+ausführbar machen (`chmod +x prepchef-linux-x64`) und starten – PrepChef öffnet sich in einem **eigenen Fenster**.
+
+Das Fenster nutzt die Web-Engine des Systems: unter Windows WebView2 (bei Windows 10/11 vorinstalliert), unter macOS
+WebKit, unter Linux **WebKitGTK 6.0** (`sudo apt install libwebkitgtk-6.0-4`, Fedora: `webkitgtk6.0`). Fehlt sie,
+öffnet sich PrepChef stattdessen im Browser. `prepchef --browser` erzwingt den Browser, `prepchef --server` startet
+nur den Server.
+
+Die Dateien sind nicht von einer Zertifizierungsstelle signiert – Windows (SmartScreen) und macOS (Gatekeeper)
+warnen daher beim ersten Start; unter macOS hilft `xattr -d com.apple.quarantine prepchef-macos-arm64`.
+Prüfsummen stehen in `SHA256SUMS`.
 
 ## Als App installieren
 
@@ -37,9 +44,9 @@ bun install
 bun run install-app   # Linux: baut, installiert nach ~/.local/bin, legt Eintrag im Anwendungsmenü an
 ```
 
-Danach startet PrepChef über das Anwendungsmenü oder mit `prepchef`: Der Server startet, der Browser öffnet sich,
-und „Beenden“ oben rechts stoppt ihn wieder. Ein zweiter Start öffnet nur den Browser, ist Port 3001 belegt,
-wird der nächste freie genommen. Beim ersten Installieren wird `data/prepchef.db` aus dem Repository übernommen
+Danach startet PrepChef über das Anwendungsmenü oder mit `prepchef` in einem eigenen Fenster; Schließen des
+Fensters oder „Beenden“ oben rechts beendet die App. Läuft PrepChef schon, öffnet ein zweiter Start nur ein
+weiteres Fenster dazu; ist Port 3001 belegt, wird der nächste freie genommen. Beim ersten Installieren wird `data/prepchef.db` aus dem Repository übernommen
 (kopiert; der Entwicklungsserver muss dafür beendet sein).
 
 Nur die Datei bauen, ohne zu installieren:
@@ -62,6 +69,7 @@ unter Node mit `node:sqlite` (`server/src/db.ts`).
 bun install
 bun run dev        # Backend :3001 + Frontend :5173 → http://localhost:5173
 bun run build && bun run start   # ein Prozess mit gebautem Frontend → http://127.0.0.1:3001
+bun run app        # wie die fertige App im eigenen Fenster, aber aus dem Quelltext
 ```
 
 | Variable       | Standard            | Zweck                    |
@@ -106,10 +114,14 @@ server/src/
   seed/        Grundrezepte
   app.ts       Fastify-Routen (/api/...)
   index.ts     Start aus dem Repository (dev/start)
-  standalone.ts  Start als Desktop-App (Datenordner, Port, Browser)
+  standalone.ts  Start als Desktop-App (Datenordner, Port, Fenster/Browser)
+  server-worker.ts  Server-Thread neben dem App-Fenster
+  webview-loader.js  lädt das native Fenster (webview-bun) mit Rückfall auf den Browser
+  desktop.ts   App-Fenster aus dem Quelltext starten (bun run app)
 scripts/
   package.ts   baut die ausführbare Datei (bun build --compile)
   install-linux.sh
+  smoke-test.ts  startet die fertige Datei als Server bzw. im Fenster und prüft sie
   screenshots.ts  erzeugt docs/screenshots/ (bun run screenshots)
 client/src/
   pages/       Planen, Plan, Pläne, Rezepte, Rezept, Editor
@@ -125,8 +137,10 @@ bun run typecheck
 
 ## CI und Releases
 
-`.github/workflows/ci.yml` läuft bei jedem Push und Pull Request: Typecheck, Tests, Frontend-Build, dann wird die
-ausführbare Datei gebaut und per `scripts/smoke-test.sh` wirklich gestartet und durchgeprüft.
+`.github/workflows/ci.yml` läuft bei jedem Push und Pull Request: Typecheck, Tests, Frontend-Build, dann baut jede
+Plattform (Linux, Windows, macOS) auf ihrem eigenen Runner die ausführbaren Dateien und startet sie per
+`scripts/smoke-test.ts` wirklich – einmal als Server (API, Frontend, Plan, Beenden) und einmal im **App-Fenster**,
+das nach dem Rendern der Oberfläche selbst meldet, ob alles geklappt hat (Linux mit virtuellem Display).
 
 Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Dateien für alle Plattformen und `SHA256SUMS`;
 Tags mit Bindestrich (z. B. `v1.0.0-rc.1`) werden als Vorabversion markiert. Die Version aus dem Tag zeigt

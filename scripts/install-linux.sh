@@ -42,6 +42,12 @@ if [ -f "$ROOT/data/prepchef.db" ] && [ ! -f "$APP_DATA/prepchef.db" ]; then
   fi
 fi
 
+# Für das eigene App-Fenster wird WebKitGTK 6.0 gebraucht, sonst öffnet PrepChef den Browser.
+if ! ldconfig -p 2>/dev/null | grep -q 'libwebkitgtk-6.0.so.4'; then
+  echo "⚠ WebKitGTK fehlt – PrepChef öffnet sich dann im Browser statt im eigenen Fenster."
+  echo "  Für das App-Fenster: sudo apt install libwebkitgtk-6.0-4   (Fedora: sudo dnf install webkitgtk6.0)"
+fi
+
 echo "✓ PrepChef installiert: $BIN_DIR/prepchef"
 echo "  Starten über das Anwendungsmenü oder mit: prepchef"
 case ":$PATH:" in

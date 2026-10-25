@@ -207,6 +207,14 @@ button.primary:hover:not(:disabled),
 button.danger {
   color: var(--danger);
 }
+button.armed {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+button.armed:hover:not(:disabled) {
+  background: var(--danger);
+}
 button.link {
   border: none;
   background: none;

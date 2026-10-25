@@ -15,6 +15,8 @@
     "package": "bun scripts/package.ts",
     "package:all": "bun scripts/package.ts --all",
     "install-app": "sh scripts/install-linux.sh",
-    "screenshots": "bun scripts/screenshots.ts"
+    "screenshots": "bun scripts/screenshots.ts",
+    "app": "bun run build && bun server/src/desktop.ts",
+    "smoke-test": "bun scripts/smoke-test.ts"
   }
 }
