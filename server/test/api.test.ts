@@ -47,6 +47,11 @@ test('ungültige Eingaben werden abgelehnt', async () => {
   assert.match(res.json().error, /Ungültige Eingabe/);
   const plan = await app.inject({ method: 'POST', url: '/api/plans', payload: { ...baseSettings, days: [9] } });
   assert.equal(plan.statusCode, 400);
+  const wednesday = await app.inject({ method: 'POST', url: '/api/plans', payload: { ...baseSettings, weekStart: '2026-10-28' } });
+  assert.equal(wednesday.statusCode, 400);
+  assert.match(wednesday.json().error, /Montag/);
+  const invalid = await app.inject({ method: 'POST', url: '/api/plans', payload: { ...baseSettings, weekStart: '2026-13-45' } });
+  assert.equal(invalid.statusCode, 400);
 });
 
 test('Plan erstellen, abhaken, austauschen, löschen', async () => {

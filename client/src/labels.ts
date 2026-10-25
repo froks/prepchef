@@ -79,10 +79,44 @@ export function clock(startHour: number, minutes: number): string {
   return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-/** Montag der nächsten Woche (bzw. dieser Woche, wenn heute Sonntag ist). */
-export function nextMonday(from = new Date()): string {
-  const d = new Date(from);
-  const dow = (d.getDay() + 6) % 7; // 0 = Montag
-  d.setDate(d.getDate() + (dow === 6 ? 1 : 7 - dow));
+/** Datum immer im deutschen Format TT.MM.JJJJ – unabhängig von der Sprache des Browsers. */
+export function formatNumericDate(iso: string): string {
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return toIso(d);
+}
+
+/** Montag der Woche, in der `from` liegt. */
+export function mondayOf(from = new Date()): string {
+  const d = new Date(from);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return toIso(d);
+}
+
+/** Montag der nächsten Woche – sonntags also der morgige Tag, passend zum Kochtag am Sonntag. */
+export function nextMonday(from = new Date()): string {
+  return addDaysIso(mondayOf(from), 7);
+}
+
+/** Kalenderwoche nach ISO 8601 (wie in deutschen Kalendern). */
+export function isoWeek(iso: string): number {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7)); // Donnerstag derselben Woche
+  const firstThursday = new Date(d.getFullYear(), 0, 4);
+  firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7));
+  return 1 + Math.round((d.getTime() - firstThursday.getTime()) / (7 * 86_400_000));
+}
+
+/** „KW 44 · 26.10.2026 – 01.11.2026" */
+export function formatWeek(monday: string): string {
+  return `KW ${isoWeek(monday)} · ${formatNumericDate(monday)} – ${formatNumericDate(addDaysIso(monday, 6))}`;
 }

@@ -293,6 +293,14 @@ label.inline input[type='number'] {
   width: 5em;
 }
 
+.week-picker {
+  display: flex;
+  gap: 8px;
+}
+.week-picker select {
+  flex: 1;
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

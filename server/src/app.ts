@@ -217,6 +217,10 @@ export async function buildApp(opts: AppOptions) {
   });
 
   app.post<{ Body: PlanSettings }>('/api/plans', { schema: { body: planSettingsBody } }, async (req, reply) => {
+    // Die Tage 0–6 zählen ab weekStart – das muss also ein Montag sein.
+    const weekday = new Date(`${req.body.weekStart}T12:00:00Z`).getUTCDay();
+    if (Number.isNaN(weekday)) return reply.code(400).send({ error: 'Ungültiges Datum.' });
+    if (weekday !== 1) return reply.code(400).send({ error: 'Die Woche muss an einem Montag beginnen.' });
     const data = generatePlan(req.body, recipes.list(), { recentlyUsed: plans.recentRecipeIds() });
     return reply.code(201).send(expandPlan(plans.create(req.body, data)));
   });

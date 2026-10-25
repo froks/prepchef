@@ -1,7 +1,19 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type Diet, type MealType, type PlanSettings, type Preference } from '../api.ts';
-import { DAY_SHORT, DIET_LABEL, formatDate, MEAL_LABEL, nextMonday, PREFERENCE_HINT, PREFERENCE_ICON, PREFERENCE_LABEL } from '../labels.ts';
+import {
+  addDaysIso,
+  DAY_SHORT,
+  DIET_LABEL,
+  formatDate,
+  formatWeek,
+  MEAL_LABEL,
+  mondayOf,
+  nextMonday,
+  PREFERENCE_HINT,
+  PREFERENCE_ICON,
+  PREFERENCE_LABEL,
+} from '../labels.ts';
 
 const DEFAULTS: PlanSettings = {
   weekStart: nextMonday(),
@@ -15,6 +27,13 @@ const DEFAULTS: PlanSettings = {
   excludeIngredients: [],
   preferences: [],
 };
+
+/** Auswählbare Wochen: 4 zurück bis ein halbes Jahr voraus. */
+function weekOptions(selected: string): string[] {
+  const current = mondayOf();
+  const weeks = Array.from({ length: 31 }, (_, i) => addDaysIso(current, (i - 4) * 7));
+  return weeks.includes(selected) ? weeks : [selected, ...weeks].sort();
+}
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
@@ -77,15 +96,24 @@ export function PlannerPage() {
 
       <form className="card form" onSubmit={submit}>
         <div className="field">
-          <label htmlFor="weekStart">Woche ab</label>
-          <input
-            id="weekStart"
-            type="date"
-            value={settings.weekStart}
-            onChange={(e) => set('weekStart', e.target.value)}
-            required
-          />
-          <small>{settings.weekStart && formatDate(settings.weekStart)}</small>
+          <label htmlFor="weekStart">Woche</label>
+          <div className="week-picker">
+            <button type="button" className="icon" aria-label="Vorherige Woche" onClick={() => set('weekStart', addDaysIso(settings.weekStart, -7))}>
+              ‹
+            </button>
+            <select id="weekStart" value={settings.weekStart} onChange={(e) => set('weekStart', e.target.value)}>
+              {weekOptions(settings.weekStart).map((w) => (
+                <option key={w} value={w}>
+                  {formatWeek(w)}
+                  {w === mondayOf() ? ' (diese Woche)' : w === nextMonday() ? ' (nächste Woche)' : ''}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="icon" aria-label="Nächste Woche" onClick={() => set('weekStart', addDaysIso(settings.weekStart, 7))}>
+              ›
+            </button>
+          </div>
+          <small>Erster Kochtag: {formatDate(addDaysIso(settings.weekStart, (settings.days.length ? Math.min(...settings.days) : 0) - 1))}</small>
         </div>
 
         <fieldset className="field">

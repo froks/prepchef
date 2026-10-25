@@ -92,3 +92,13 @@ test('EL und TL werden zusammengefasst, Zehen aufgerundet', () => {
   const garlic = items.find((i) => i.name === 'Knoblauch')!;
   assert.deepEqual([garlic.amount, garlic.unit], [3, 'Zehe']); // 2 + 0,5 → 3
 });
+
+test('Löffel- und Prisenmengen lesbar runden', async () => {
+  const { humanize } = await import('../src/domain/units.ts');
+  assert.deepEqual(humanize(19.5, 'TL'), { amount: 6.5, unit: 'EL' });
+  assert.deepEqual(humanize(13.5, 'TL'), { amount: 4.5, unit: 'EL' });
+  assert.deepEqual(humanize(7, 'TL'), { amount: 2.5, unit: 'EL' }); // aufgerundet, damit es reicht
+  assert.deepEqual(humanize(5, 'TL'), { amount: 5, unit: 'TL' });
+  assert.deepEqual(humanize(3, 'TL'), { amount: 1, unit: 'EL' });
+  assert.deepEqual(humanize(1.5, 'Prise'), { amount: 2, unit: 'Prise' });
+});

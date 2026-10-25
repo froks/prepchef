@@ -80,10 +80,11 @@ export function humanize(amount: number, unit: string): { amount: number; unit: 
   if (unit === 'g' && amount >= 1000) return { amount: round(amount / 1000, 2), unit: 'kg' };
   if (unit === 'ml' && amount >= 1000) return { amount: round(amount / 1000, 2), unit: 'l' };
   if (unit === 'g' || unit === 'ml') return { amount: roundGrams(amount), unit };
-  // Löffel: ganze Esslöffel lesen sich besser als 6 TL.
+  // Löffel: „6,5 EL" liest sich besser als „19,5 TL" – ab 6 TL in halbe Esslöffel umrechnen, darunter nur glatte EL.
+  if (unit === 'TL' && amount >= 6) return { amount: Math.ceil((amount / 3) * 2 - 1e-9) / 2, unit: 'EL' };
   if (unit === 'TL' && amount >= 3 && Math.abs(amount / 3 - Math.round(amount / 3)) < 1e-6) return { amount: Math.round(amount / 3), unit: 'EL' };
   // Zählbare Einheiten aufrunden – eine halbe Dose kauft man nicht.
-  if (['Stück', 'Dose', 'Pck.', 'Becher', 'Glas', 'Bund', 'Knolle', 'Kopf', 'Stange', 'Zehe', 'Würfel', 'Scheibe'].includes(unit) || unit === '') {
+  if (['Stück', 'Dose', 'Pck.', 'Becher', 'Glas', 'Bund', 'Knolle', 'Kopf', 'Stange', 'Zehe', 'Würfel', 'Scheibe', 'Prise', 'Msp.'].includes(unit) || unit === '') {
     return { amount: Math.ceil(amount - 1e-9), unit };
   }
   return { amount: round(amount, 1), unit };
