@@ -14,6 +14,7 @@
     "typecheck": "bun run --filter '@prepchef/*' typecheck",
     "package": "bun scripts/package.ts",
     "package:all": "bun scripts/package.ts --all",
-    "install-app": "sh scripts/install-linux.sh"
+    "install-app": "sh scripts/install-linux.sh",
+    "screenshots": "bun scripts/screenshots.ts"
   }
 }

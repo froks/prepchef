@@ -3,6 +3,23 @@
 Erstellt Wochenpläne fürs Meal-Prep: wählt passende Gerichte aus, erstellt eine zusammengefasste Einkaufsliste,
 plant den Kochtag so, dass Ofen und Herd parallel laufen, und zeigt die Nährwerte pro Tag.
 
+![Wochenplan mit Frühstück, Mittag- und Abendessen](docs/screenshots/woche.png)
+
+## Screenshots
+
+| | |
+|---|---|
+| **Planen** – Tage, Mahlzeiten, Personen, Kalorienziel, Präferenzen | **Prep-Ablauf** – Zeitplan für den Kochtag, passive Schritte laufen nebenbei |
+| ![Planer](docs/screenshots/planer.png) | ![Prep-Ablauf](docs/screenshots/prep-ablauf.png) |
+| **Einkaufsliste** – zusammengefasst, nach Supermarkt-Bereichen, abhakbar | **Nährwerte** – pro Tag und Person, verglichen mit dem Ziel |
+| ![Einkaufsliste](docs/screenshots/einkaufsliste.png) | ![Nährwerte](docs/screenshots/naehrwerte.png) |
+| **Rezepte** – Filter, aktive und Gesamtzeit, URL-Import | **Rezept** – Zutaten auf beliebige Portionen umrechnen |
+| ![Rezepte](docs/screenshots/rezepte.png) | ![Rezept](docs/screenshots/rezept.png) |
+| **Heller Modus** – folgt der Systemeinstellung | **Mobil** – Einkaufsliste im Supermarkt |
+| ![Heller Modus](docs/screenshots/hell.png) | <img src="docs/screenshots/mobil.png" alt="Mobilansicht" width="260"> |
+
+Die Screenshots erzeugt `bun run screenshots` neu (Demo-Daten, Chromium wird ferngesteuert).
+
 ## Herunterladen
 
 Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases**: Datei für das eigene System herunterladen,
@@ -93,6 +110,7 @@ server/src/
 scripts/
   package.ts   baut die ausführbare Datei (bun build --compile)
   install-linux.sh
+  screenshots.ts  erzeugt docs/screenshots/ (bun run screenshots)
 client/src/
   pages/       Planen, Plan, Pläne, Rezepte, Rezept, Editor
   components/  Wochenansicht, Einkaufsliste, Prep-Ablauf, Nährwerte
