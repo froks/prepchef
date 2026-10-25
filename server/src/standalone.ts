@@ -41,7 +41,10 @@ async function isPrepChef(url: string): Promise<boolean> {
   }
 }
 
-const HELP = `PrepChef – Meal-Prep-Wochenplaner
+/** Beim Kompilieren von scripts/package.ts eingesetzt. */
+export const VERSION = process.env.PREPCHEF_VERSION ?? 'dev';
+
+const HELP = `PrepChef ${VERSION} – Meal-Prep-Wochenplaner
 
 Aufruf: prepchef [Optionen]
 
@@ -49,6 +52,7 @@ Aufruf: prepchef [Optionen]
   --host <adresse> Bind-Adresse (Standard 127.0.0.1; 0.0.0.0 = im Netzwerk erreichbar, ohne Login!)
   --data <ordner>  Datenordner (Standard ${defaultDataDir()})
   --no-browser     Browser nicht automatisch öffnen
+  -v, --version    Version anzeigen
   -h, --help       Diese Hilfe
 `;
 
@@ -63,6 +67,9 @@ function parseArgs(argv: string[]) {
     const a = argv[i];
     if (a === '-h' || a === '--help') {
       console.log(HELP);
+      process.exit(0);
+    } else if (a === '-v' || a === '--version') {
+      console.log(VERSION);
       process.exit(0);
     } else if (a === '--port') opts.port = Number(argv[++i]);
     else if (a === '--host') opts.host = argv[++i];

@@ -3,6 +3,13 @@
 Erstellt Wochenpläne fürs Meal-Prep: wählt passende Gerichte aus, erstellt eine zusammengefasste Einkaufsliste,
 plant den Kochtag so, dass Ofen und Herd parallel laufen, und zeigt die Nährwerte pro Tag.
 
+## Herunterladen
+
+Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases**: Datei für das eigene System herunterladen,
+ausführbar machen (`chmod +x prepchef-linux-x64`) und starten. Die Dateien sind nicht signiert – Windows
+(SmartScreen) und macOS (Gatekeeper) warnen daher beim ersten Start; unter macOS hilft
+`xattr -d com.apple.quarantine prepchef-macos-arm64`. Prüfsummen stehen in `SHA256SUMS`.
+
 ## Als App installieren
 
 PrepChef lässt sich zu **einer einzigen ausführbaren Datei** kompilieren – Frontend und Laufzeit sind eingebettet,
@@ -96,4 +103,18 @@ Das Frontend nutzt die Typen und den Zutaten-Parser des Servers direkt.
 ```bash
 bun run test       # Server-Tests (node:test)
 bun run typecheck
+```
+
+## CI und Releases
+
+`.github/workflows/ci.yml` läuft bei jedem Push und Pull Request: Typecheck, Tests, Frontend-Build, dann wird die
+ausführbare Datei gebaut und per `scripts/smoke-test.sh` wirklich gestartet und durchgeprüft.
+
+Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Dateien für alle Plattformen und `SHA256SUMS`;
+Tags mit Bindestrich (z. B. `v1.0.0-rc.1`) werden als Vorabversion markiert. Die Version aus dem Tag zeigt
+`prepchef --version`.
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
 ```

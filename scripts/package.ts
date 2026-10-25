@@ -9,6 +9,12 @@ import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { $ } from 'bun';
 
+// Version für `prepchef --version`: aus CI (Tag) oder `git describe`, sonst „dev".
+const version =
+  process.env.PREPCHEF_VERSION ||
+  (await $`git describe --tags --always --dirty`.cwd(join(import.meta.dir, '..')).nothrow().quiet().text()).trim() ||
+  'dev';
+
 const root = join(import.meta.dir, '..');
 const clientDist = join(root, 'client', 'dist');
 const buildDir = join(root, 'build');
@@ -50,13 +56,15 @@ ${entries.join('\n')}
 ])));
 `,
 );
-console.log(`▸ ${files.length} Frontend-Dateien eingebettet`);
+console.log(`▸ ${files.length} Frontend-Dateien eingebettet, Version ${version}`);
 
 await mkdir(outDir, { recursive: true });
 const targets = process.argv.includes('--all') ? TARGETS : [{ target: undefined, file: process.platform === 'win32' ? 'prepchef.exe' : 'prepchef' }];
 for (const { target, file } of targets) {
   const outfile = join(outDir, file);
   console.log(`▸ Kompiliere ${relative(root, outfile)}${target ? ` (${target})` : ''} …`);
-  await $`bun build ${entry} --compile --minify ${target ? [`--target=${target}`] : []} --outfile ${outfile}`.cwd(root).quiet();
+  await $`bun build ${entry} --compile --minify --define ${`process.env.PREPCHEF_VERSION=${JSON.stringify(version)}`} ${target ? [`--target=${target}`] : []} --outfile ${outfile}`
+    .cwd(root)
+    .quiet();
 }
 console.log('✓ Fertig. Starten mit ./dist/prepchef');
