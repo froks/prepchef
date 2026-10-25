@@ -9,7 +9,7 @@ import { buildShoppingList } from './domain/shopping.ts';
 import { buildTimelines } from './domain/timeline.ts';
 import { PlanRepo } from './repo/plans.ts';
 import { RecipeRepo } from './repo/recipes.ts';
-import { seedRecipes } from './seed/recipes.ts';
+import { SEED_VERSION, seedRecipes } from './seed/recipes.ts';
 import type { MealType, Plan, PlanSettings, Recipe, RecipeInput } from './types.ts';
 import { CATEGORIES, DIETS, MEAL_TYPES } from './types.ts';
 
@@ -103,14 +103,26 @@ const planSettingsBody = {
   },
 } as const;
 
+/**
+ * Liefert neue Grundrezepte nach. Die Version steht in `PRAGMA user_version`, damit Rezepte,
+ * die jemand gelöscht hat, beim nächsten Start nicht wieder auftauchen.
+ */
+function applySeeds(db: DatabaseSync, recipes: RecipeRepo) {
+  const stored = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+  // Datenbanken von vor der Versionierung haben den ersten Satz schon bekommen.
+  const applied = stored === 0 && recipes.count() > 0 ? 1 : stored;
+  if (applied >= SEED_VERSION) return;
+  const existing = new Set(recipes.list().map((r) => r.title.toLowerCase()));
+  for (const r of seedRecipes(applied)) if (!existing.has(r.title.toLowerCase())) recipes.create(r);
+  db.exec(`PRAGMA user_version = ${SEED_VERSION}`);
+}
+
 export async function buildApp(opts: AppOptions) {
   const app = Fastify({ logger: opts.logger ?? false });
   const recipes = new RecipeRepo(opts.db);
   const plans = new PlanRepo(opts.db);
 
-  if (recipes.count() === 0) {
-    for (const r of seedRecipes()) recipes.create(r);
-  }
+  applySeeds(opts.db, recipes);
 
   /** Plan inklusive aller abgeleiteten Ansichten. */
   function expandPlan(plan: Plan) {

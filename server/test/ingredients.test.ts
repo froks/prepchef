@@ -60,3 +60,11 @@ test('Grundrezepte sind sauber geparst und konsistent', () => {
     assert.ok(order.indexOf(guessDiet(r.ingredients)) <= order.indexOf(r.diet), `${r.title}: Ernährungsform passt nicht`);
   }
 });
+
+test('Käsesorten und Teig im Kühlregal, Hefeflocken bleiben vegan', () => {
+  assert.equal(guessCategory('Cheddar'), 'milch-kuehl');
+  assert.equal(guessCategory('Blätterteig'), 'milch-kuehl');
+  assert.equal(guessCategory('Hefeflocken'), 'trockenwaren');
+  assert.equal(guessDiet([parseIngredient('100 g Ricotta')]), 'vegetarisch');
+  assert.equal(guessDiet([parseIngredient('2 EL Hefeflocken')]), 'vegan');
+});

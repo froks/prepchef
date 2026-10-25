@@ -26,7 +26,8 @@ bun run start      # http://127.0.0.1:3001
 | `HOST`         | `127.0.0.1`         | Bind-Adresse             |
 | `PREPCHEF_DB`  | `data/prepchef.db`  | Pfad zur SQLite-Datei    |
 
-Beim ersten Start wird die Datenbank mit 22 Grundrezepten befüllt.
+Beim ersten Start wird die Datenbank mit 46 Grundrezepten befüllt. Kommen in einer neuen Version Grundrezepte
+hinzu, werden sie in bestehende Datenbanken nachgeliefert – selbst gelöschte Grundrezepte bleiben gelöscht.
 
 ## Funktionen
 

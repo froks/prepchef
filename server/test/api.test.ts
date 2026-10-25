@@ -84,3 +84,24 @@ test('Import-Fehler liefert 422 mit Meldung', async () => {
   assert.equal(res.statusCode, 422);
   assert.match(res.json().error, /schema.org/);
 });
+
+test('neue Grundrezepte werden nachgeliefert, gelöschte kommen nicht zurück', async () => {
+  const db = openDatabase(':memory:');
+  // Stand vor der Versionierung: nur der erste Rezeptsatz, ein Rezept wurde gelöscht.
+  const { RecipeRepo } = await import('../src/repo/recipes.ts');
+  const { seedRecipes } = await import('../src/seed/recipes.ts');
+  const repo = new RecipeRepo(db);
+  const v1 = seedRecipes().filter((r) => r.title !== 'Baked Oats mit Banane').slice(0, 22);
+  for (const r of v1.slice(1)) repo.create(r);
+
+  const app = await buildApp({ db });
+  const titles = (await app.inject('/api/recipes')).json().map((r: { title: string }) => r.title);
+  assert.ok(titles.includes('Baked Oats mit Banane'), 'neues Rezept nachgeliefert');
+  assert.ok(!titles.includes(v1[0].title), 'gelöschtes Grundrezept bleibt gelöscht');
+
+  const deleted = (await app.inject('/api/recipes')).json().find((r: { title: string }) => r.title === 'Minestrone');
+  await app.inject({ method: 'DELETE', url: `/api/recipes/${deleted.id}` });
+  const again = await buildApp({ db });
+  const after = (await again.inject('/api/recipes')).json().map((r: { title: string }) => r.title);
+  assert.ok(!after.includes('Minestrone'), 'bei erneutem Start nicht wieder angelegt');
+});

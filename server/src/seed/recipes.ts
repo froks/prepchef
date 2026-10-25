@@ -1,7 +1,8 @@
 import { parseIngredient } from '../domain/ingredients.ts';
 import type { Diet, MealType, RecipeInput } from '../types.ts';
+import { SEED_V2 } from './recipes-v2.ts';
 
-interface SeedRecipe {
+export interface SeedRecipe {
   title: string;
   description: string;
   servings: number;
@@ -679,8 +680,19 @@ const SEED: SeedRecipe[] = [
   },
 ];
 
-export function seedRecipes(): RecipeInput[] {
-  return SEED.map((s) => ({
+/** Rezeptsätze nach Version. Neue Rezepte kommen in einen neuen Satz, damit bestehende Datenbanken sie nachgeliefert bekommen. */
+const SEED_SETS: { version: number; recipes: SeedRecipe[] }[] = [
+  { version: 1, recipes: SEED },
+  { version: 2, recipes: SEED_V2 },
+];
+
+export const SEED_VERSION = Math.max(...SEED_SETS.map((s) => s.version));
+
+/** Grundrezepte aller Sätze, die neuer sind als `afterVersion`. */
+export function seedRecipes(afterVersion = 0): RecipeInput[] {
+  return SEED_SETS.filter((set) => set.version > afterVersion)
+    .flatMap((set) => set.recipes)
+    .map((s) => ({
     title: s.title,
     description: s.description,
     servings: s.servings,
@@ -695,5 +707,5 @@ export function seedRecipes(): RecipeInput[] {
     favorite: false,
     sourceUrl: null,
     imageUrl: null,
-  }));
+    }));
 }
