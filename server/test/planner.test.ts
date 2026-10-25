@@ -100,6 +100,20 @@ test('Präferenzen „schnell" und „Low Carb" werden bevorzugt', async () => {
   for (const m of lowCarbBreakfast.meals) assert.ok(isLowCarb(byId.get(m.recipeId!)!), byId.get(m.recipeId!)!.title);
 });
 
+test('Gesamtzeit und aktive Zeit sind getrennte Kriterien', async () => {
+  const { activeMinutes, isLowEffort, isQuick, totalMinutes } = await import('../src/domain/traits.ts');
+  const tacos = recipes.find((r) => r.title === 'Fisch-Taco-Bowl')!;
+  assert.equal(totalMinutes(tacos), 76); // inkl. 30 Min. Auftauen
+  assert.equal(activeMinutes(tacos), 13);
+  assert.ok(!isQuick(tacos) && isLowEffort(tacos), 'wenig Arbeit, aber nicht schnell fertig');
+  const gulasch = recipes.find((r) => r.title === 'Rindergulasch mit Kartoffeln')!;
+  assert.ok(!isQuick(gulasch) && !isLowEffort(gulasch), `Gulasch: ${activeMinutes(gulasch)} Min. aktiv`);
+  for (const r of recipes) assert.ok(activeMinutes(r) <= totalMinutes(r));
+
+  const plan = generatePlan({ ...baseSettings, preferences: ['wenigAufwand'] }, recipes, { random: seededRandom() });
+  for (const m of plan.meals) assert.ok(isLowEffort(byId.get(m.recipeId!)!), byId.get(m.recipeId!)!.title);
+});
+
 test('genug schnelle und Low-Carb-Rezepte für abwechslungsreiche Pläne', async () => {
   const { isLowCarb, isQuick } = await import('../src/domain/traits.ts');
   const mains = recipes.filter((r) => r.mealTypes.includes('mittag') || r.mealTypes.includes('abend'));

@@ -34,9 +34,13 @@ hinzu, werden sie in bestehende Datenbanken nachgeliefert – selbst gelöschte 
 - **Planer:** Tage, Mahlzeiten, Personen, Kalorienziel, Ernährungsform, Ausschlüsse, ein oder zwei Kochtage.
   Bevorzugt Gerichte mit gemeinsamen Zutaten, achtet auf Haltbarkeit (kurz Haltbares zuerst essen, sonst einfrieren),
   Abwechslung (Tags, zuletzt gekochte Gerichte) und Favoriten. Einzelne Gerichte lassen sich austauschen.
-- **Präferenzen „Schnell“ und „Low Carb“:** werden aus den Rezeptdaten abgeleitet – schnell = höchstens 30 Min.
-  Gesamtzeit laut Schritten, Low Carb = höchstens 25 g Kohlenhydrate pro Portion (`server/src/domain/traits.ts`).
-  Im Planer stark bevorzugt, in der Rezeptliste als Filter.
+- **Zeiten:** Jedes Rezept hat eine *Gesamtzeit* (alle Schritte inkl. Garen, Backen, Auftauen) und eine *aktive
+  Zeit* (nur Schritte, die nicht als „nebenbei“ markiert sind).
+- **Präferenzen:** werden aus den Rezeptdaten abgeleitet (`server/src/domain/traits.ts`) – im Planer stark bevorzugt,
+  in der Rezeptliste als Filter:
+  - *Schnell fertig* – höchstens 30 Min. Gesamtzeit
+  - *Wenig Aufwand* – höchstens 20 Min. aktive Zeit
+  - *Low Carb* – höchstens 25 g Kohlenhydrate pro Portion
 - **Einkaufsliste:** skaliert auf Personen × Mahlzeiten, rechnet Einheiten um (g/kg, ml/l, TL/EL), fasst
   Singular/Plural zusammen, sortiert nach Supermarkt-Bereichen, abhakbar, als Text kopierbar.
 - **Prep-Ablauf:** Zeitplan für eine Person in der Küche – aktive Schritte nacheinander, passive (Ofen, Köcheln,

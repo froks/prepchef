@@ -1,8 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { parseIngredient } from '../../../server/src/domain/ingredients.ts';
+import { activeMinutes, isLowEffort, isQuick, totalMinutes } from '../../../server/src/domain/traits.ts';
 import { api, type Diet, type Ingredient, type MealType, type RecipeInput, type Step } from '../api.ts';
-import { CATEGORY_LABEL, DIET_LABEL, formatAmount, MEAL_LABEL } from '../labels.ts';
+import { CATEGORY_LABEL, DIET_LABEL, formatAmount, formatMinutes, MEAL_LABEL } from '../labels.ts';
 
 const EMPTY: RecipeInput = {
   title: '',
@@ -268,9 +269,16 @@ export function RecipeEditorPage() {
             </li>
           ))}
         </ol>
-        <button type="button" onClick={() => set('steps', [...recipe.steps, { text: '', minutes: 5, passive: false }])}>
-          + Schritt
-        </button>
+        <div className="actions">
+          <span className="muted small">
+            🔪 {formatMinutes(activeMinutes(recipe))} aktiv · ⏱ {formatMinutes(totalMinutes(recipe))} gesamt
+            {isQuick(recipe) && ' · ⚡ schnell fertig'}
+            {isLowEffort(recipe) && ' · wenig Aufwand'}
+          </span>
+          <button type="button" onClick={() => set('steps', [...recipe.steps, { text: '', minutes: 5, passive: false }])}>
+            + Schritt
+          </button>
+        </div>
       </section>
 
       <section className="card form">

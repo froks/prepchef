@@ -4,7 +4,7 @@ export type Diet = (typeof DIETS)[number];
 export const MEAL_TYPES = ['fruehstueck', 'mittag', 'abend', 'snack'] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
-export const PREFERENCES = ['schnell', 'lowcarb'] as const;
+export const PREFERENCES = ['schnell', 'wenigAufwand', 'lowcarb'] as const;
 export type Preference = (typeof PREFERENCES)[number];
 
 export const CATEGORIES = [

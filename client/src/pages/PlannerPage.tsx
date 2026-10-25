@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type Diet, type MealType, type PlanSettings, type Preference } from '../api.ts';
-import { DAY_SHORT, DIET_LABEL, formatDate, MEAL_LABEL, nextMonday, PREFERENCE_HINT, PREFERENCE_LABEL } from '../labels.ts';
+import { DAY_SHORT, DIET_LABEL, formatDate, MEAL_LABEL, nextMonday, PREFERENCE_HINT, PREFERENCE_ICON, PREFERENCE_LABEL } from '../labels.ts';
 
 const DEFAULTS: PlanSettings = {
   weekStart: nextMonday(),
@@ -184,15 +184,14 @@ export function PlannerPage() {
                 title={PREFERENCE_HINT[p]}
                 onClick={() => set('preferences', toggle(settings.preferences, p))}
               >
-                {p === 'schnell' ? '⚡ ' : '🥗 '}
-                {PREFERENCE_LABEL[p]}
+                {PREFERENCE_ICON[p]} {PREFERENCE_LABEL[p]}
               </button>
             ))}
           </div>
           <small>
             {settings.preferences.length
               ? `Nur ${settings.preferences.map((p) => `${PREFERENCE_LABEL[p]} (${PREFERENCE_HINT[p]})`).join(' und ')} – andere Gerichte nur, wenn nichts Passendes übrig ist.`
-              : 'Optional: schnelle oder kohlenhydratarme Gerichte bevorzugen.'}
+              : 'Optional: Gesamtzeit, aktive Arbeitszeit oder Kohlenhydrate begrenzen.'}
           </small>
         </fieldset>
 

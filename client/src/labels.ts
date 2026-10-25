@@ -1,13 +1,21 @@
-import { LOW_CARB_MAX_GRAMS, QUICK_MAX_MINUTES } from '../../server/src/domain/traits.ts';
+import { LOW_CARB_MAX_GRAMS, LOW_EFFORT_MAX_MINUTES, QUICK_MAX_MINUTES } from '../../server/src/domain/traits.ts';
 import type { Category, Diet, MealType, Preference } from './api.ts';
 
 export const PREFERENCE_LABEL: Record<Preference, string> = {
-  schnell: 'Schnell',
+  schnell: 'Schnell fertig',
+  wenigAufwand: 'Wenig Aufwand',
   lowcarb: 'Low Carb',
 };
 
+export const PREFERENCE_ICON: Record<Preference, string> = {
+  schnell: '⚡',
+  wenigAufwand: '🔪',
+  lowcarb: '🥗',
+};
+
 export const PREFERENCE_HINT: Record<Preference, string> = {
-  schnell: `höchstens ${QUICK_MAX_MINUTES} Min.`,
+  schnell: `höchstens ${QUICK_MAX_MINUTES} Min. Gesamtzeit`,
+  wenigAufwand: `höchstens ${LOW_EFFORT_MAX_MINUTES} Min. aktive Zeit`,
   lowcarb: `höchstens ${LOW_CARB_MAX_GRAMS} g Kohlenhydrate pro Portion`,
 };
 

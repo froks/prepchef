@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { isLowCarb, isQuick } from '../../../server/src/domain/traits.ts';
+import { activeMinutes, isLowCarb, isLowEffort, isQuick, totalMinutes } from '../../../server/src/domain/traits.ts';
 import { api } from '../api.ts';
 import { DIET_LABEL, formatAmount, formatMinutes, MEAL_LABEL, PREFERENCE_HINT } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
@@ -16,7 +16,6 @@ export function RecipeDetailPage() {
 
   const portions = servings ?? recipe.servings;
   const factor = portions / recipe.servings;
-  const totalMinutes = recipe.steps.reduce((s, st) => s + st.minutes, 0);
 
   async function remove() {
     if (!confirm(`„${recipe!.title}" wirklich löschen?`)) return;
@@ -46,8 +45,11 @@ export function RecipeDetailPage() {
                 {MEAL_LABEL[m]}
               </span>
             ))}
-            <span className={`tag ${isQuick(recipe) ? 'quick' : ''}`}>
-              {isQuick(recipe) ? '⚡' : '⏱'} {formatMinutes(totalMinutes)}
+            <span className={`tag ${isLowEffort(recipe) ? 'quick' : ''}`} title="Aktive Koch- und Vorbereitungszeit">
+              🔪 {formatMinutes(activeMinutes(recipe))} aktiv
+            </span>
+            <span className={`tag ${isQuick(recipe) ? 'quick' : ''}`} title="Gesamtzeit inkl. Garen, Backen und Auftauen">
+              {isQuick(recipe) ? '⚡' : '⏱'} {formatMinutes(totalMinutes(recipe))} gesamt
             </span>
             {isLowCarb(recipe) && (
               <span className="tag lowcarb" title={PREFERENCE_HINT.lowcarb}>

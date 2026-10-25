@@ -1,8 +1,8 @@
 import { type FormEvent, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { isLowCarb, isQuick, totalMinutes } from '../../../server/src/domain/traits.ts';
+import { activeMinutes, isLowCarb, isLowEffort, isQuick, matchesPreference, totalMinutes } from '../../../server/src/domain/traits.ts';
 import { api, type Diet, type MealType, type Preference, type Recipe } from '../api.ts';
-import { DIET_LABEL, formatMinutes, MEAL_LABEL, PREFERENCE_HINT, PREFERENCE_LABEL } from '../labels.ts';
+import { DIET_LABEL, formatMinutes, MEAL_LABEL, PREFERENCE_HINT, PREFERENCE_ICON, PREFERENCE_LABEL } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
 
 export function RecipesPage() {
@@ -28,8 +28,7 @@ export function RecipesPage() {
         (!diet || r.diet === diet) &&
         (!meal || r.mealTypes.includes(meal)) &&
         (!onlyFav || r.favorite) &&
-        (!prefs.includes('schnell') || isQuick(r)) &&
-        (!prefs.includes('lowcarb') || isLowCarb(r)),
+        prefs.every((p) => matchesPreference(r, p)),
     );
   }, [recipes, query, diet, meal, onlyFav, prefs]);
 
@@ -110,7 +109,7 @@ export function RecipesPage() {
             title={PREFERENCE_HINT[p]}
             onClick={() => setPrefs(prefs.includes(p) ? prefs.filter((x) => x !== p) : [...prefs, p])}
           >
-            {PREFERENCE_LABEL[p]}
+            {PREFERENCE_ICON[p]} {PREFERENCE_LABEL[p]}
           </button>
         ))}
         <label className="inline">
@@ -144,9 +143,11 @@ export function RecipesPage() {
               <div className="tags">
                 <span className={`tag diet-${r.diet}`}>{DIET_LABEL[r.diet]}</span>
                 {r.nutrition && <span className="tag">{r.nutrition.kcal} kcal</span>}
-                <span className={`tag ${isQuick(r) ? 'quick' : ''}`} title="Gesamtzeit laut Rezeptschritten">
-                  {isQuick(r) ? '⚡ ' : '⏱ '}
-                  {formatMinutes(totalMinutes(r))}
+                <span className={`tag ${isLowEffort(r) ? 'quick' : ''}`} title="Aktive Koch- und Vorbereitungszeit">
+                  🔪 {formatMinutes(activeMinutes(r))} aktiv
+                </span>
+                <span className={`tag ${isQuick(r) ? 'quick' : ''}`} title="Gesamtzeit inkl. Garen, Backen und Auftauen">
+                  {isQuick(r) ? '⚡' : '⏱'} {formatMinutes(totalMinutes(r))} gesamt
                 </span>
                 {isLowCarb(r) && (
                   <span className="tag lowcarb" title={PREFERENCE_HINT.lowcarb}>

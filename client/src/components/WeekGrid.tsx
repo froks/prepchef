@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
+import { activeMinutes } from '../../../server/src/domain/traits.ts';
 import type { ExpandedPlan, MealType } from '../api.ts';
-import { DAY_LONG, formatDate, formatShortDate, MEAL_LABEL } from '../labels.ts';
+import { DAY_LONG, formatDate, formatMinutes, formatShortDate, MEAL_LABEL } from '../labels.ts';
 
 export function WeekGrid({
   plan,
@@ -41,7 +42,7 @@ export function WeekGrid({
                               {recipe.title}
                             </Link>
                             <span className="meal-meta">
-                              {recipe.nutrition ? `${recipe.nutrition.kcal} kcal` : '– kcal'}
+                              {recipe.nutrition ? `${recipe.nutrition.kcal} kcal` : '– kcal'} · {formatMinutes(activeMinutes(recipe))} aktiv
                               {recipe.freezable && day - (session.days[0] - 1) > recipe.fridgeDays && (
                                 <span title="Am Kochtag einfrieren, am Vorabend auftauen"> · ❄️ einfrieren</span>
                               )}
