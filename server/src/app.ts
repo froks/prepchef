@@ -1,7 +1,6 @@
-import { existsSync } from 'node:fs';
-import type { DatabaseSync } from 'node:sqlite';
-import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
+import type { AssetSource } from './assets.ts';
+import type { Database } from './db.ts';
 import { ImportError, importFromUrl } from './domain/importer.ts';
 import { summarizeNutrition } from './domain/nutrition.ts';
 import { generatePlan, plannedKcalTarget, swapRecipe } from './domain/planner.ts';
@@ -14,12 +13,17 @@ import type { MealType, Plan, PlanSettings, Recipe, RecipeInput } from './types.
 import { CATEGORIES, DIETS, MEAL_TYPES, PREFERENCES } from './types.ts';
 
 export interface AppOptions {
-  db: DatabaseSync;
-  /** Gebautes Frontend, das im Produktionsbetrieb mit ausgeliefert wird. */
-  staticDir?: string;
+  db: Database;
+  /** Gebautes Frontend, das mit ausgeliefert wird (Verzeichnis oder eingebettet). */
+  assets?: AssetSource;
   fetchImpl?: typeof fetch;
   logger?: boolean;
+  /** Nur in der Desktop-App gesetzt: „Beenden" in der Oberfläche stoppt dann den Server. */
+  onShutdown?: () => void;
 }
+
+/** Kennung für /api/health – damit ein zweiter Start erkennt, dass PrepChef schon läuft. */
+export const APP_ID = 'prepchef';
 
 const idParams = {
   type: 'object',
@@ -108,7 +112,7 @@ const planSettingsBody = {
  * Liefert neue Grundrezepte nach. Die Version steht in `PRAGMA user_version`, damit Rezepte,
  * die jemand gelöscht hat, beim nächsten Start nicht wieder auftauchen.
  */
-function applySeeds(db: DatabaseSync, recipes: RecipeRepo) {
+function applySeeds(db: Database, recipes: RecipeRepo) {
   const stored = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
   // Datenbanken von vor der Versionierung haben den ersten Satz schon bekommen.
   const applied = stored === 0 && recipes.count() > 0 ? 1 : stored;
@@ -259,12 +263,32 @@ export async function buildApp(opts: AppOptions) {
     return plans.delete(req.params.id) ? reply.code(204).send() : reply.code(404).send({ error: 'Plan nicht gefunden' });
   });
 
-  if (opts.staticDir && existsSync(opts.staticDir)) {
-    await app.register(fastifyStatic, { root: opts.staticDir });
-    // Client-seitiges Routing: unbekannte Nicht-API-Pfade liefern die SPA aus.
-    app.setNotFoundHandler((req, reply) =>
-      req.url.startsWith('/api/') ? reply.code(404).send({ error: 'Nicht gefunden' }) : reply.sendFile('index.html'),
-    );
+  app.get('/api/health', async () => ({ app: APP_ID, canShutdown: !!opts.onShutdown }));
+
+  if (opts.onShutdown) {
+    const shutdown = opts.onShutdown;
+    app.post('/api/shutdown', async (_req, reply) => {
+      await reply.send({ ok: true });
+      setTimeout(shutdown, 100);
+    });
+  }
+
+  const assets = opts.assets;
+  if (assets) {
+    app.setNotFoundHandler(async (req, reply) => {
+      const path = req.url.split('?')[0];
+      if (req.method !== 'GET' || path.startsWith('/api/')) return reply.code(404).send({ error: 'Nicht gefunden' });
+      const file = (path !== '/' && (await assets(path))) || null;
+      if (file) {
+        // Vite hängt Hashes an die Dateinamen unter /assets/ – die dürfen dauerhaft gecacht werden.
+        if (path.startsWith('/assets/')) reply.header('Cache-Control', 'public, max-age=31536000, immutable');
+        return reply.type(file.type).send(Buffer.from(file.body));
+      }
+      // Client-seitiges Routing: unbekannte Pfade liefern die SPA aus.
+      const index = await assets('/index.html');
+      if (!index) return reply.code(404).send({ error: 'Frontend nicht gebaut – bitte `bun run build` ausführen.' });
+      return reply.header('Cache-Control', 'no-cache').type(index.type).send(Buffer.from(index.body));
+    });
   }
 
   return app;

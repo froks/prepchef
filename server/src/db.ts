@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS recipes (
@@ -32,9 +32,36 @@ CREATE TABLE IF NOT EXISTS plans (
 );
 `;
 
-export function openDatabase(path: string): DatabaseSync {
+type Param = string | number | bigint | null;
+
+export interface Statement {
+  run(...params: Param[] | [Record<string, Param>]): { changes: number | bigint; lastInsertRowid: number | bigint };
+  get(...params: Param[]): unknown;
+  all(...params: Param[]): unknown[];
+}
+
+/** Gemeinsame Schnittmenge von `node:sqlite` (Node, Tests) und `bun:sqlite` (Bun, kompilierte App). */
+export interface Database {
+  exec(sql: string): void;
+  prepare(sql: string): Statement;
+}
+
+const require = createRequire(import.meta.url);
+const isBun = typeof process.versions.bun === 'string';
+
+function openNative(path: string): Database {
+  if (isBun) {
+    const { Database } = require('bun:sqlite');
+    // strict: benannte Parameter ohne Präfix im Objekt ({ title } für :title) – wie bei node:sqlite.
+    return new Database(path, { create: true, strict: true });
+  }
+  const { DatabaseSync } = require('node:sqlite');
+  return new DatabaseSync(path);
+}
+
+export function openDatabase(path: string): Database {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
-  const db = new DatabaseSync(path);
+  const db = openNative(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
   return db;

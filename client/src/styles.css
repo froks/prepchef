@@ -112,6 +112,17 @@ a {
   border-radius: 999px;
   font-weight: 500;
 }
+.topbar nav .quit {
+  margin-left: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.stopped {
+  padding-top: 20vh;
+  text-align: center;
+}
 .topbar nav a.active {
   background: var(--accent-soft);
   color: var(--accent-strong);

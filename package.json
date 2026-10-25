@@ -2,12 +2,18 @@
   "name": "prepchef",
   "private": true,
   "type": "module",
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "dev": "bun run --filter '@prepchef/*' dev",
     "build": "bun run --filter @prepchef/client build",
     "start": "bun run --filter @prepchef/server start",
     "test": "bun run --filter @prepchef/server test",
-    "typecheck": "bun run --filter '@prepchef/*' typecheck"
+    "typecheck": "bun run --filter '@prepchef/*' typecheck",
+    "package": "bun scripts/package.ts",
+    "package:all": "bun scripts/package.ts --all",
+    "install-app": "sh scripts/install-linux.sh"
   }
 }

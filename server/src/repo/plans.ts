@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../db.ts';
 import type { Plan, PlanData, PlanSettings } from '../types.ts';
 
 type Row = Record<string, any>;
@@ -15,9 +15,9 @@ function fromRow(row: Row): Plan {
 }
 
 export class PlanRepo {
-  private db: DatabaseSync;
+  private db: Database;
 
-  constructor(db: DatabaseSync) {
+  constructor(db: Database) {
     this.db = db;
   }
 

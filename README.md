@@ -3,21 +3,41 @@
 Erstellt Wochenpläne fürs Meal-Prep: wählt passende Gerichte aus, erstellt eine zusammengefasste Einkaufsliste,
 plant den Kochtag so, dass Ofen und Herd parallel laufen, und zeigt die Nährwerte pro Tag.
 
-## Starten
+## Als App installieren
 
-Voraussetzungen: **Bun** (Pakete und Skripte) und **Node.js ≥ 24** – das Backend läuft auf Node, weil es das
-eingebaute `node:sqlite` nutzt und TypeScript direkt ausführt.
+PrepChef lässt sich zu **einer einzigen ausführbaren Datei** kompilieren – Frontend und Laufzeit sind eingebettet,
+auf dem Zielrechner muss nichts installiert sein. Zum Bauen wird [Bun](https://bun.sh) gebraucht.
+
+```bash
+bun install
+bun run install-app   # Linux: baut, installiert nach ~/.local/bin, legt Eintrag im Anwendungsmenü an
+```
+
+Danach startet PrepChef über das Anwendungsmenü oder mit `prepchef`: Der Server startet, der Browser öffnet sich,
+und „Beenden“ oben rechts stoppt ihn wieder. Ein zweiter Start öffnet nur den Browser, ist Port 3001 belegt,
+wird der nächste freie genommen. Beim ersten Installieren wird `data/prepchef.db` aus dem Repository übernommen
+(kopiert; der Entwicklungsserver muss dafür beendet sein).
+
+Nur die Datei bauen, ohne zu installieren:
+
+```bash
+bun run package       # → dist/prepchef
+bun run package:all   # zusätzlich Linux arm64, Windows x64, macOS x64/arm64
+./dist/prepchef --help
+```
+
+Die App speichert ihre Daten unter `~/.local/share/prepchef/` (Linux), `~/Library/Application Support/PrepChef/`
+(macOS) bzw. `%APPDATA%\PrepChef\` (Windows); `--data <ordner>` wählt einen anderen Ort.
+
+## Entwickeln
+
+Voraussetzungen: **Bun** sowie **Node.js ≥ 24** für die Tests. Die Datenbank läuft unter Bun mit `bun:sqlite`,
+unter Node mit `node:sqlite` (`server/src/db.ts`).
 
 ```bash
 bun install
 bun run dev        # Backend :3001 + Frontend :5173 → http://localhost:5173
-```
-
-Produktion (ein Prozess, liefert das gebaute Frontend mit aus):
-
-```bash
-bun run build
-bun run start      # http://127.0.0.1:3001
+bun run build && bun run start   # ein Prozess mit gebautem Frontend → http://127.0.0.1:3001
 ```
 
 | Variable       | Standard            | Zweck                    |
@@ -61,6 +81,11 @@ server/src/
   repo/        SQLite-Zugriff (Rezepte, Pläne)
   seed/        Grundrezepte
   app.ts       Fastify-Routen (/api/...)
+  index.ts     Start aus dem Repository (dev/start)
+  standalone.ts  Start als Desktop-App (Datenordner, Port, Browser)
+scripts/
+  package.ts   baut die ausführbare Datei (bun build --compile)
+  install-linux.sh
 client/src/
   pages/       Planen, Plan, Pläne, Rezepte, Rezept, Editor
   components/  Wochenansicht, Einkaufsliste, Prep-Ablauf, Nährwerte

@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../db.ts';
 import type { Recipe, RecipeInput } from '../types.ts';
 
 type Row = Record<string, any>;
@@ -45,9 +45,9 @@ function toParams(r: RecipeInput) {
 }
 
 export class RecipeRepo {
-  private db: DatabaseSync;
+  private db: Database;
 
-  constructor(db: DatabaseSync) {
+  constructor(db: Database) {
     this.db = db;
   }
 
