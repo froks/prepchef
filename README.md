@@ -22,8 +22,23 @@ Die Screenshots erzeugt `bun run screenshots` neu (Demo-Daten, Chromium wird fer
 
 ## Herunterladen
 
-Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases**: Datei für das eigene System herunterladen,
-ausführbar machen (`chmod +x prepchef-linux-x64`) und starten – PrepChef öffnet sich in einem **eigenen Fenster**.
+Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases** – PrepChef öffnet sich in einem
+**eigenen Fenster**.
+
+**Linux (empfohlen): Flatpak** – bringt alles mit, ohne `sudo`:
+
+```bash
+sh scripts/install-flatpak.sh                    # lädt das neueste Release und installiert es
+# oder mit heruntergeladener Datei:
+flatpak install --user prepchef-linux-x86_64.flatpak
+```
+
+Beim ersten Mal lädt Flatpak die GNOME-Laufzeit von Flathub (einmalig ca. 420 MB, wird mit anderen Apps geteilt).
+Das Skript übernimmt vorhandene Daten aus einer früheren Installation. Die Daten des Flatpaks liegen unter
+`~/.var/app/io.github.froks.PrepChef/data/prepchef/`.
+
+**Windows, macOS und Linux ohne Flatpak:** Datei für das eigene System herunterladen, unter Linux/macOS
+ausführbar machen (`chmod +x prepchef-linux-x64`) und starten.
 
 Das Fenster nutzt die Web-Engine des Systems: unter Windows WebView2 (bei Windows 10/11 vorinstalliert), unter macOS
 WebKit, unter Linux **WebKitGTK 6.0** (`sudo apt install libwebkitgtk-6.0-4`, Fedora: `webkitgtk6.0`). Fehlt sie,
@@ -121,6 +136,7 @@ server/src/
 scripts/
   package.ts   baut die ausführbare Datei (bun build --compile)
   install-linux.sh
+  install-flatpak.sh  installiert das Flatpak (neuestes Release oder lokale Datei), übernimmt Daten
   smoke-test.ts  startet die fertige Datei als Server bzw. im Fenster und prüft sie
   screenshots.ts  erzeugt docs/screenshots/ (bun run screenshots)
 client/src/
@@ -142,7 +158,10 @@ Plattform (Linux, Windows, macOS) auf ihrem eigenen Runner die ausführbaren Dat
 `scripts/smoke-test.ts` wirklich – einmal als Server (API, Frontend, Plan, Beenden) und einmal im **App-Fenster**,
 das nach dem Rendern der Oberfläche selbst meldet, ob alles geklappt hat (Linux mit virtuellem Display).
 
-Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Dateien für alle Plattformen und `SHA256SUMS`;
+Für Linux entsteht außerdem ein Flatpak (`flatpak/io.github.froks.PrepChef.yml`, GNOME-Laufzeit 51), das auf einem
+frischen System installiert und ebenfalls als Server und im Fenster getestet wird.
+
+Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Dateien für alle Plattformen, dem Flatpak und `SHA256SUMS`;
 Tags mit Bindestrich (z. B. `v1.0.0-rc.1`) werden als Vorabversion markiert. Die Version aus dem Tag zeigt
 `prepchef --version`.
 

@@ -105,10 +105,81 @@ jobs:
           path: dist/prepchef-*
           if-no-files-found: error
 
+  # Linux-Flatpak: bringt WebKitGTK über die GNOME-Laufzeit mit – das App-Fenster braucht dann nichts vom System.
+  flatpak:
+    name: Flatpak bauen
+    needs: desktop
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: prepchef-Linux
+          path: dist
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          manifest-path: flatpak/io.github.froks.PrepChef.yml
+          bundle: prepchef-linux-x86_64.flatpak
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prepchef-Flatpak
+          path: prepchef-linux-x86_64.flatpak
+          if-no-files-found: error
+
+  # Installiert das Flatpak wie ein Nutzer auf einem frischen System und startet es als Server und im Fenster.
+  flatpak-test:
+    name: Flatpak testen
+    needs: flatpak
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: prepchef-Flatpak
+          path: dist
+
+      - name: Flatpak installieren
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends flatpak xvfb dbus-x11
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.gnome.Platform//51
+          flatpak install --user -y --noninteractive dist/prepchef-linux-x86_64.flatpak
+          flatpak info --user io.github.froks.PrepChef
+
+      - name: Aufruf-Hülle für den Smoke-Test
+        run: |
+          cat > prepchef-flatpak <<'SH'
+          #!/bin/sh
+          # Umgebungsvariablen gelangen nicht automatisch in die Sandbox.
+          exec flatpak run --env=PREPCHEF_SMOKE_TEST="${PREPCHEF_SMOKE_TEST:-}" \
+            --env=WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 --env=LIBGL_ALWAYS_SOFTWARE=1 \
+            io.github.froks.PrepChef "$@"
+          SH
+          chmod +x prepchef-flatpak
+
+      - name: Smoke-Test Server
+        run: dbus-run-session -- bun scripts/smoke-test.ts ./prepchef-flatpak
+
+      - name: Smoke-Test App-Fenster
+        run: dbus-run-session -- xvfb-run -a bun scripts/smoke-test.ts ./prepchef-flatpak --window
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: desktop
+    needs: [desktop, flatpak-test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

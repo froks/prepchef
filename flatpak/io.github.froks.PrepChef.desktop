@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=PrepChef
+GenericName=Meal-Prep-Planer
+Comment=Wochenpläne, Einkaufslisten und Kochtag-Ablauf fürs Meal-Prep
+Exec=prepchef
+Icon=io.github.froks.PrepChef
+Terminal=false
+Categories=Utility;
+Keywords=Meal Prep;Rezepte;Einkaufsliste;Kochen;Wochenplan;

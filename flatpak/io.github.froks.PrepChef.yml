@@ -1,0 +1,36 @@
+# Flatpak für Linux: bringt über die GNOME-Laufzeit WebKitGTK 6.0 mit, das App-Fenster funktioniert also
+# ohne dass auf dem System etwas installiert werden muss. Gebaut in CI (.github/workflows/ci.yml) aus der
+# fertigen Linux-Datei dist/prepchef-linux-x64.
+app-id: io.github.froks.PrepChef
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+command: prepchef
+finish-args:
+  # Lokaler Server (127.0.0.1) und Rezeptimport von Webseiten
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+modules:
+  - name: prepchef
+    buildsystem: simple
+    build-options:
+      # Bun hängt den Programmcode an die ausführbare Datei an – strip würde ihn entfernen.
+      strip: false
+      no-debuginfo: true
+    build-commands:
+      - install -Dm755 prepchef-linux-x64 /app/bin/prepchef
+      - install -Dm644 io.github.froks.PrepChef.desktop /app/share/applications/io.github.froks.PrepChef.desktop
+      - install -Dm644 icon.svg /app/share/icons/hicolor/scalable/apps/io.github.froks.PrepChef.svg
+      - install -Dm644 io.github.froks.PrepChef.metainfo.xml /app/share/metainfo/io.github.froks.PrepChef.metainfo.xml
+    sources:
+      - type: file
+        path: ../dist/prepchef-linux-x64
+      - type: file
+        path: io.github.froks.PrepChef.desktop
+      - type: file
+        path: ../client/public/icon.svg
+      - type: file
+        path: io.github.froks.PrepChef.metainfo.xml
