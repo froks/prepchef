@@ -1,0 +1,20 @@
+{
+  "name": "@prepchef/desktop",
+  "productName": "PrepChef",
+  "desktopName": "prepchef.desktop",
+  "version": "0.1.0",
+  "description": "Meal-Prep-Wochenplaner",
+  "author": "froks",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "electron": "45.0.0",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2"
+  }
+}

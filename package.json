@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": [
     "server",
-    "client"
+    "client",
+    "desktop"
   ],
   "scripts": {
     "dev": "bun run --filter '@prepchef/*' dev",
@@ -13,10 +14,8 @@
     "test": "bun run --filter @prepchef/server test",
     "typecheck": "bun run --filter '@prepchef/*' typecheck",
     "package": "bun scripts/package.ts",
-    "package:all": "bun scripts/package.ts --all",
-    "install-app": "sh scripts/install-linux.sh",
     "screenshots": "bun scripts/screenshots.ts",
-    "app": "bun run build && bun server/src/desktop.ts",
+    "app": "bun scripts/package.ts --run",
     "smoke-test": "bun scripts/smoke-test.ts"
   }
 }

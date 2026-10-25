@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { isDesktopWindow, quitApp } from '../desktop.ts';
+import { quitApp } from '../desktop.ts';
 import { ConfirmButton } from './ConfirmButton.tsx';
 
 export function Layout() {
@@ -16,10 +16,9 @@ export function Layout() {
   }, []);
 
   async function shutdown() {
-    // Im App-Fenster schließt sich das Fenster selbst; im Browser bleibt der Tab mit einem Hinweis offen.
-    const inWindow = isDesktopWindow();
+    // In der Desktop-App schließt sich das Fenster; im Browser bleibt der Tab mit einem Hinweis offen.
     await quitApp();
-    if (!inWindow) setStopped(true);
+    setStopped(true);
   }
 
   if (stopped) {

@@ -36,8 +36,8 @@ jobs:
       - run: bun run test
       - run: bun run build
 
-  # Jede Plattform baut auf ihrem eigenen Runner: Windows braucht das für „kein Konsolenfenster“ und das Icon,
-  # macOS für die Signatur – und so lässt sich das App-Fenster überall wirklich starten.
+  # Jede Plattform baut auf ihrem eigenen Runner (Electron-Pakete lassen sich nicht sinnvoll überkreuz bauen)
+  # und startet die App wirklich: Das Fenster prüft selbst, ob die Oberfläche rendert, und beendet sich.
   desktop:
     name: App ${{ matrix.name }}
     needs: test
@@ -48,16 +48,16 @@ jobs:
         include:
           - name: Linux
             os: ubuntu-latest
-            targets: linux-x64,linux-arm64
-            native: prepchef-linux-x64
+            arch: --x64 --arm64
+            app: dist/prepchef-*-linux-x86_64.AppImage
           - name: Windows
             os: windows-latest
-            targets: windows-x64
-            native: prepchef-windows-x64.exe
+            arch: --x64
+            app: dist/win-unpacked/PrepChef.exe
           - name: macOS
             os: macos-latest
-            targets: macos-arm64,macos-x64
-            native: prepchef-macos-arm64
+            arch: --arm64 --x64
+            app: dist/mac-arm64/PrepChef.app/Contents/MacOS/PrepChef
     steps:
       - uses: actions/checkout@v5
 
@@ -67,119 +67,39 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - name: WebKitGTK und virtuelles Display (Linux)
+      - name: Virtuelles Display (Linux)
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libwebkitgtk-6.0-4 xvfb
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb
 
-      - name: Ausführbare Dateien bauen
+      - name: App bauen
         shell: bash
         env:
           PREPCHEF_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-        run: bun scripts/package.ts --targets ${{ matrix.targets }}
+        run: bun scripts/package.ts ${{ matrix.arch }}
 
-      - name: Ad-hoc signieren (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          for f in dist/prepchef-macos-*; do codesign --force --sign - "$f"; done
-          codesign --verify --verbose dist/prepchef-macos-arm64
-
-      - name: Smoke-Test Server
-        run: bun scripts/smoke-test.ts dist/${{ matrix.native }}
-
-      - name: Smoke-Test App-Fenster
+      - name: Fenster-Smoke-Test
         shell: bash
-        env:
-          # CI-VMs erlauben die WebKit-Sandbox (bubblewrap) nicht; nur für diesen Test abgeschaltet.
-          WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS: '1'
-          LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
+          APP=$(ls ${{ matrix.app }} | head -1)
           if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a bun scripts/smoke-test.ts dist/${{ matrix.native }} --window
+            xvfb-run -a bun scripts/smoke-test.ts "$APP"
           else
-            bun scripts/smoke-test.ts dist/${{ matrix.native }} --window
+            bun scripts/smoke-test.ts "$APP"
           fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: prepchef-${{ matrix.name }}
-          path: dist/prepchef-*
+          path: |
+            dist/prepchef-*.AppImage
+            dist/prepchef-*.exe
+            dist/prepchef-*.dmg
           if-no-files-found: error
-
-  # Linux-Flatpak: bringt WebKitGTK über die GNOME-Laufzeit mit – das App-Fenster braucht dann nichts vom System.
-  flatpak:
-    name: Flatpak bauen
-    needs: desktop
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
-      options: --privileged
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: prepchef-Linux
-          path: dist
-
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-        with:
-          manifest-path: flatpak/io.github.froks.PrepChef.yml
-          bundle: prepchef-linux-x86_64.flatpak
-          cache-key: flatpak-builder-${{ github.sha }}
-          upload-artifact: false
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: prepchef-Flatpak
-          path: prepchef-linux-x86_64.flatpak
-          if-no-files-found: error
-
-  # Installiert das Flatpak wie ein Nutzer auf einem frischen System und startet es als Server und im Fenster.
-  flatpak-test:
-    name: Flatpak testen
-    needs: flatpak
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: ${{ env.BUN_VERSION }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: prepchef-Flatpak
-          path: dist
-
-      - name: Flatpak installieren
-        run: |
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends flatpak xvfb dbus-x11
-          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-          flatpak install --user -y --noninteractive flathub org.gnome.Platform//51
-          flatpak install --user -y --noninteractive dist/prepchef-linux-x86_64.flatpak
-          flatpak info --user io.github.froks.PrepChef
-
-      - name: Aufruf-Hülle für den Smoke-Test
-        run: |
-          cat > prepchef-flatpak <<'SH'
-          #!/bin/sh
-          # Umgebungsvariablen gelangen nicht automatisch in die Sandbox.
-          exec flatpak run --env=PREPCHEF_SMOKE_TEST="${PREPCHEF_SMOKE_TEST:-}" \
-            --env=WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 --env=LIBGL_ALWAYS_SOFTWARE=1 \
-            io.github.froks.PrepChef "$@"
-          SH
-          chmod +x prepchef-flatpak
-
-      - name: Smoke-Test Server
-        run: dbus-run-session -- bun scripts/smoke-test.ts ./prepchef-flatpak
-
-      - name: Smoke-Test App-Fenster
-        run: dbus-run-session -- xvfb-run -a bun scripts/smoke-test.ts ./prepchef-flatpak --window
 
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [desktop, flatpak-test]
+    needs: desktop
     runs-on: ubuntu-latest
     permissions:
       contents: write

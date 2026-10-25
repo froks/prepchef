@@ -22,69 +22,39 @@ Die Screenshots erzeugt `bun run screenshots` neu (Demo-Daten, Chromium wird fer
 
 ## Herunterladen
 
-Fertige Dateien für Linux, Windows und macOS gibt es unter **Releases** – PrepChef öffnet sich in einem
-**eigenen Fenster**.
+Fertige Pakete gibt es unter **Releases** – PrepChef ist eine Desktop-App (Electron) mit eigenem Fenster und bringt
+alles mit, was es braucht:
 
-**Linux (empfohlen): Flatpak** – bringt alles mit, ohne `sudo`:
+| System | Datei | Start |
+|---|---|---|
+| Linux | `prepchef-…-linux-x86_64.AppImage` (oder `-arm64`) | `chmod +x` und starten – oder mit Menüeintrag installieren: `sh scripts/install-linux.sh <datei>` |
+| Windows | `prepchef-…-windows-x64-setup.exe` | Installer ohne Admin-Rechte; alternativ `…-portable.exe` ohne Installation |
+| macOS | `prepchef-…-macos-arm64.dmg` (Apple Silicon) bzw. `-x64` (Intel) | DMG öffnen, PrepChef in „Programme“ ziehen |
 
-```bash
-sh scripts/install-flatpak.sh                    # lädt das neueste Release und installiert es
-# oder mit heruntergeladener Datei:
-flatpak install --user prepchef-linux-x86_64.flatpak
-```
+Schließen des Fensters oder „Beenden“ oben rechts beendet die App; ein zweiter Start holt das offene Fenster nach
+vorn. Unter Linux schaltet das AppImage die Chromium-Sandbox nur dann ab, wenn das System keine unprivilegierten
+User-Namespaces erlaubt (Ubuntu ab 24.04 ohne AppArmor-Profil) – das Fenster zeigt ausschließlich die lokale
+Oberfläche, externe Links öffnen im Standardbrowser.
 
-Beim ersten Mal lädt Flatpak die GNOME-Laufzeit von Flathub (einmalig ca. 420 MB, wird mit anderen Apps geteilt).
-Das Skript übernimmt vorhandene Daten aus einer früheren Installation. Die Daten des Flatpaks liegen unter
-`~/.var/app/io.github.froks.PrepChef/data/prepchef/`.
-
-**Windows, macOS und Linux ohne Flatpak:** Datei für das eigene System herunterladen, unter Linux/macOS
-ausführbar machen (`chmod +x prepchef-linux-x64`) und starten.
-
-Das Fenster nutzt die Web-Engine des Systems: unter Windows WebView2 (bei Windows 10/11 vorinstalliert), unter macOS
-WebKit, unter Linux **WebKitGTK 6.0** (`sudo apt install libwebkitgtk-6.0-4`, Fedora: `webkitgtk6.0`). Fehlt sie,
-öffnet sich PrepChef stattdessen im Browser. `prepchef --browser` erzwingt den Browser, `prepchef --server` startet
-nur den Server.
-
-Die Dateien sind nicht von einer Zertifizierungsstelle signiert – Windows (SmartScreen) und macOS (Gatekeeper)
-warnen daher beim ersten Start; unter macOS hilft `xattr -d com.apple.quarantine prepchef-macos-arm64`.
-Prüfsummen stehen in `SHA256SUMS`.
-
-## Als App installieren
-
-PrepChef lässt sich zu **einer einzigen ausführbaren Datei** kompilieren – Frontend und Laufzeit sind eingebettet,
-auf dem Zielrechner muss nichts installiert sein. Zum Bauen wird [Bun](https://bun.sh) gebraucht.
-
-```bash
-bun install
-bun run install-app   # Linux: baut, installiert nach ~/.local/bin, legt Eintrag im Anwendungsmenü an
-```
-
-Danach startet PrepChef über das Anwendungsmenü oder mit `prepchef` in einem eigenen Fenster; Schließen des
-Fensters oder „Beenden“ oben rechts beendet die App. Läuft PrepChef schon, öffnet ein zweiter Start nur ein
-weiteres Fenster dazu; ist Port 3001 belegt, wird der nächste freie genommen. Beim ersten Installieren wird `data/prepchef.db` aus dem Repository übernommen
-(kopiert; der Entwicklungsserver muss dafür beendet sein).
-
-Nur die Datei bauen, ohne zu installieren:
-
-```bash
-bun run package       # → dist/prepchef
-bun run package:all   # zusätzlich Linux arm64, Windows x64, macOS x64/arm64
-./dist/prepchef --help
-```
+Die Pakete sind nicht von einer Zertifizierungsstelle signiert – Windows (SmartScreen: „Weitere Informationen“ →
+„Trotzdem ausführen“) und macOS (Gatekeeper) warnen daher beim ersten Start; unter macOS hilft
+`xattr -cr /Applications/PrepChef.app`. Prüfsummen stehen in `SHA256SUMS`.
 
 Die App speichert ihre Daten unter `~/.local/share/prepchef/` (Linux), `~/Library/Application Support/PrepChef/`
-(macOS) bzw. `%APPDATA%\PrepChef\` (Windows); `--data <ordner>` wählt einen anderen Ort.
+(macOS) bzw. `%APPDATA%\PrepChef\` (Windows). Daten einer früheren Flatpak-Installation übernimmt sie beim ersten
+Start, `scripts/install-linux.sh` übernimmt `data/prepchef.db` aus dem Repository.
 
 ## Entwickeln
 
 Voraussetzungen: **Bun** sowie **Node.js ≥ 24** für die Tests. Die Datenbank läuft unter Bun mit `bun:sqlite`,
-unter Node mit `node:sqlite` (`server/src/db.ts`).
+unter Node und in der Desktop-App (Electrons Node) mit `node:sqlite` (`server/src/db.ts`).
 
 ```bash
 bun install
 bun run dev        # Backend :3001 + Frontend :5173 → http://localhost:5173
 bun run build && bun run start   # ein Prozess mit gebautem Frontend → http://127.0.0.1:3001
-bun run app        # wie die fertige App im eigenen Fenster, aber aus dem Quelltext
+bun run app        # Desktop-App (Electron) aus dem Quelltext starten
+bun run package    # Pakete für dieses System → dist/ (Linux: AppImage, Windows: Installer/portable, macOS: DMG)
 ```
 
 | Variable       | Standard            | Zweck                    |
@@ -129,19 +99,19 @@ server/src/
   seed/        Grundrezepte
   app.ts       Fastify-Routen (/api/...)
   index.ts     Start aus dem Repository (dev/start)
-  standalone.ts  Start als Desktop-App (Datenordner, Port, Fenster/Browser)
-  server-worker.ts  Server-Thread neben dem App-Fenster
-  webview-loader.js  lädt das native Fenster (webview-bun) mit Rückfall auf den Browser
-  desktop.ts   App-Fenster aus dem Quelltext starten (bun run app)
-scripts/
-  package.ts   baut die ausführbare Datei (bun build --compile)
-  install-linux.sh
-  install-flatpak.sh  installiert das Flatpak (neuestes Release oder lokale Datei), übernimmt Daten
-  smoke-test.ts  startet die fertige Datei als Server bzw. im Fenster und prüft sie
-  screenshots.ts  erzeugt docs/screenshots/ (bun run screenshots)
+  server.ts    Server-Start für die Desktop-App (Datenordner, freier Port)
+desktop/
+  src/main.ts  Electron-Hauptprozess: Server, Fenster, eine Instanz, externe Links
+  electron-builder.config.cjs  Pakete: AppImage, NSIS/portable, DMG
+  build/       Icons
 client/src/
   pages/       Planen, Plan, Pläne, Rezepte, Rezept, Editor
   components/  Wochenansicht, Einkaufsliste, Prep-Ablauf, Nährwerte
+scripts/
+  package.ts       bündelt den Hauptprozess (bun build) und ruft electron-builder auf
+  smoke-test.ts    startet die gebaute App und prüft das Fenster
+  install-linux.sh installiert das AppImage mit Menüeintrag
+  screenshots.ts   erzeugt docs/screenshots/ (bun run screenshots)
 ```
 
 Das Frontend nutzt die Typen und den Zutaten-Parser des Servers direkt.
@@ -154,16 +124,12 @@ bun run typecheck
 ## CI und Releases
 
 `.github/workflows/ci.yml` läuft bei jedem Push und Pull Request: Typecheck, Tests, Frontend-Build, dann baut jede
-Plattform (Linux, Windows, macOS) auf ihrem eigenen Runner die ausführbaren Dateien und startet sie per
-`scripts/smoke-test.ts` wirklich – einmal als Server (API, Frontend, Plan, Beenden) und einmal im **App-Fenster**,
-das nach dem Rendern der Oberfläche selbst meldet, ob alles geklappt hat (Linux mit virtuellem Display).
+Plattform (Linux, Windows, macOS) auf ihrem eigenen Runner die Pakete und startet die App per
+`scripts/smoke-test.ts` wirklich: Das Fenster prüft nach dem Laden selbst, ob die Oberfläche gerendert wurde und
+Rezepte da sind, und beendet sich über denselben Weg wie „Beenden“ (Linux: das AppImage unter virtuellem Display).
 
-Für Linux entsteht außerdem ein Flatpak (`flatpak/io.github.froks.PrepChef.yml`, GNOME-Laufzeit 51), das auf einem
-frischen System installiert und ebenfalls als Server und im Fenster getestet wird.
-
-Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Dateien für alle Plattformen, dem Flatpak und `SHA256SUMS`;
-Tags mit Bindestrich (z. B. `v1.0.0-rc.1`) werden als Vorabversion markiert. Die Version aus dem Tag zeigt
-`prepchef --version`.
+Ein Tag `v*` erstellt zusätzlich ein GitHub-Release mit den Paketen für alle Plattformen und `SHA256SUMS`;
+Tags mit Bindestrich (z. B. `v1.0.0-rc.1`) werden als Vorabversion markiert.
 
 ```bash
 git tag v0.1.0

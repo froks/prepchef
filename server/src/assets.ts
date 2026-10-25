@@ -24,7 +24,7 @@ export function contentType(path: string): string {
   return TYPES[extname(path).toLowerCase()] ?? 'application/octet-stream';
 }
 
-/** Dateien aus einem Verzeichnis (Entwicklung, `bun run start`). */
+/** Dateien aus einem Verzeichnis (client/dist bzw. in der Desktop-App aus dem App-Paket). */
 export function directoryAssets(root: string): AssetSource {
   const base = resolve(root);
   return async (path) => {
@@ -35,14 +35,5 @@ export function directoryAssets(root: string): AssetSource {
     } catch {
       return null;
     }
-  };
-}
-
-/** In die ausführbare Datei eingebettete Dateien: URL-Pfad → Pfad im eingebetteten Dateisystem. */
-export function embeddedAssets(files: Map<string, string>): AssetSource {
-  return async (path) => {
-    const file = files.get(path);
-    if (!file) return null;
-    return { body: await readFile(file), type: contentType(path) };
   };
 }

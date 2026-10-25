@@ -1,9 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 
-/**
- * Knopf mit Rückfrage direkt im Knopf („Wirklich löschen?") statt confirm() –
- * der Browser-Dialog fehlt in manchen App-Fenstern (macOS-Webview) ganz.
- */
+/** Knopf mit Rückfrage direkt im Knopf („Wirklich löschen?") statt eines blockierenden confirm()-Dialogs. */
 export function ConfirmButton({
   children,
   confirmLabel,
