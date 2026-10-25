@@ -5,18 +5,19 @@ plant den Kochtag so, dass Ofen und Herd parallel laufen, und zeigt die Nährwer
 
 ## Starten
 
-Voraussetzung: **Node.js ≥ 24** (nutzt das eingebaute `node:sqlite` und führt TypeScript direkt aus).
+Voraussetzungen: **Bun** (Pakete und Skripte) und **Node.js ≥ 24** – das Backend läuft auf Node, weil es das
+eingebaute `node:sqlite` nutzt und TypeScript direkt ausführt.
 
 ```bash
-npm install
-npm run dev        # Backend :3001 + Frontend :5173 → http://localhost:5173
+bun install
+bun run dev        # Backend :3001 + Frontend :5173 → http://localhost:5173
 ```
 
 Produktion (ein Prozess, liefert das gebaute Frontend mit aus):
 
 ```bash
-npm run build
-npm start          # http://127.0.0.1:3001
+bun run build
+bun run start      # http://127.0.0.1:3001
 ```
 
 | Variable       | Standard            | Zweck                    |
@@ -60,6 +61,6 @@ client/src/
 Das Frontend nutzt die Typen und den Zutaten-Parser des Servers direkt.
 
 ```bash
-npm test           # Server-Tests (node:test)
-npm run typecheck
+bun run test       # Server-Tests (node:test)
+bun run typecheck
 ```
