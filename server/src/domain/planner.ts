@@ -1,5 +1,6 @@
-import type { Diet, MealType, PlanData, PlannedMeal, PlanSettings, PrepSession, Recipe } from '../types.ts';
+import type { Diet, MealType, PlanData, PlannedMeal, PlanSettings, Preference, PrepSession, Recipe } from '../types.ts';
 import { ingredientKey, isStaple } from './ingredients.ts';
+import { matchesPreference } from './traits.ts';
 
 const DIET_RANK: Record<Diet, number> = { vegan: 0, vegetarisch: 1, pescetarisch: 2, alles: 3 };
 
@@ -71,6 +72,7 @@ export function generatePlan(settings: PlanSettings, recipes: Recipe[], opts: Pl
       const picked: Recipe[] = [];
       for (let i = 0; i < count; i++) {
         const best = pickBest(candidates, {
+          preferences: settings.preferences ?? [],
           chosenInSession,
           usedInWeek,
           recent,
@@ -127,6 +129,7 @@ export function plannedKcalTarget(settings: PlanSettings): number | null {
 }
 
 interface PickContext {
+  preferences: Preference[];
   chosenInSession: Recipe[];
   usedInWeek: Set<number>;
   recent: Set<number>;
@@ -156,6 +159,9 @@ export function scoreRecipe(r: Recipe, ctx: PickContext): number {
   // Haltbarkeit: Gerichte, die bis zum letzten Tag frisch bleiben, sind beim Meal-Prep Gold wert.
   if (r.freezable || r.fridgeDays >= ctx.maxOffset) score += 2;
   else score -= (ctx.maxOffset - r.fridgeDays) * 1.5;
+
+  // Präferenzen wiegen schwerer als alles andere – ein unpassendes Gericht kommt nur zum Zug, wenn nichts anderes passt.
+  for (const p of ctx.preferences) score += matchesPreference(r, p) ? 6 : -6;
 
   if (r.favorite) score += 2.5;
   if (ctx.recent.has(r.id)) score -= 2;
@@ -251,6 +257,7 @@ export function swapRecipe(
   );
 
   const replacement = pickBest(candidates, {
+    preferences: settings.preferences ?? [],
     chosenInSession,
     usedInWeek,
     recent: opts.recentlyUsed ?? new Set(),

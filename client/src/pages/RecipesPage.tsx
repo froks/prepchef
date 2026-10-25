@@ -1,7 +1,8 @@
 import { type FormEvent, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api, type Diet, type MealType, type Recipe } from '../api.ts';
-import { DIET_LABEL, MEAL_LABEL } from '../labels.ts';
+import { isLowCarb, isQuick, totalMinutes } from '../../../server/src/domain/traits.ts';
+import { api, type Diet, type MealType, type Preference, type Recipe } from '../api.ts';
+import { DIET_LABEL, formatMinutes, MEAL_LABEL, PREFERENCE_HINT, PREFERENCE_LABEL } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
 
 export function RecipesPage() {
@@ -11,6 +12,7 @@ export function RecipesPage() {
   const [diet, setDiet] = useState<Diet | ''>('');
   const [meal, setMeal] = useState<MealType | ''>('');
   const [onlyFav, setOnlyFav] = useState(false);
+  const [prefs, setPrefs] = useState<Preference[]>([]);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -25,9 +27,11 @@ export function RecipesPage() {
           r.ingredients.some((i) => i.name.toLowerCase().includes(q))) &&
         (!diet || r.diet === diet) &&
         (!meal || r.mealTypes.includes(meal)) &&
-        (!onlyFav || r.favorite),
+        (!onlyFav || r.favorite) &&
+        (!prefs.includes('schnell') || isQuick(r)) &&
+        (!prefs.includes('lowcarb') || isLowCarb(r)),
     );
-  }, [recipes, query, diet, meal, onlyFav]);
+  }, [recipes, query, diet, meal, onlyFav, prefs]);
 
   async function importRecipe(e: FormEvent) {
     e.preventDefault();
@@ -97,9 +101,22 @@ export function RecipesPage() {
             </option>
           ))}
         </select>
+        {(Object.keys(PREFERENCE_LABEL) as Preference[]).map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={`chip ${prefs.includes(p) ? 'on' : ''}`}
+            aria-pressed={prefs.includes(p)}
+            title={PREFERENCE_HINT[p]}
+            onClick={() => setPrefs(prefs.includes(p) ? prefs.filter((x) => x !== p) : [...prefs, p])}
+          >
+            {PREFERENCE_LABEL[p]}
+          </button>
+        ))}
         <label className="inline">
           <input type="checkbox" checked={onlyFav} onChange={(e) => setOnlyFav(e.target.checked)} /> Nur Favoriten
         </label>
+        {recipes && <span className="muted small">{filtered.length} Rezepte</span>}
       </div>
 
       {loading && <p className="muted">Lade Rezepte …</p>}
@@ -127,6 +144,15 @@ export function RecipesPage() {
               <div className="tags">
                 <span className={`tag diet-${r.diet}`}>{DIET_LABEL[r.diet]}</span>
                 {r.nutrition && <span className="tag">{r.nutrition.kcal} kcal</span>}
+                <span className={`tag ${isQuick(r) ? 'quick' : ''}`} title="Gesamtzeit laut Rezeptschritten">
+                  {isQuick(r) ? '⚡ ' : '⏱ '}
+                  {formatMinutes(totalMinutes(r))}
+                </span>
+                {isLowCarb(r) && (
+                  <span className="tag lowcarb" title={PREFERENCE_HINT.lowcarb}>
+                    Low Carb
+                  </span>
+                )}
                 <span className="tag">{r.freezable ? `${r.fridgeDays} Tage · ❄️` : `${r.fridgeDays} Tage`}</span>
               </div>
             </div>

@@ -11,7 +11,7 @@ import { PlanRepo } from './repo/plans.ts';
 import { RecipeRepo } from './repo/recipes.ts';
 import { SEED_VERSION, seedRecipes } from './seed/recipes.ts';
 import type { MealType, Plan, PlanSettings, Recipe, RecipeInput } from './types.ts';
-import { CATEGORIES, DIETS, MEAL_TYPES } from './types.ts';
+import { CATEGORIES, DIETS, MEAL_TYPES, PREFERENCES } from './types.ts';
 
 export interface AppOptions {
   db: DatabaseSync;
@@ -100,6 +100,7 @@ const planSettingsBody = {
     prepSessions: { enum: [1, 2], default: 1 },
     recipesPerSlot: { type: 'integer', minimum: 1, maximum: 7, default: 2 },
     excludeIngredients: { type: 'array', items: { type: 'string' }, default: [] },
+    preferences: { type: 'array', uniqueItems: true, items: { enum: PREFERENCES }, default: [] },
   },
 } as const;
 

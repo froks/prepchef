@@ -26,4 +26,5 @@ export const baseSettings: PlanSettings = {
   prepSessions: 1,
   recipesPerSlot: 2,
   excludeIngredients: [],
+  preferences: [],
 };

@@ -4,6 +4,9 @@ export type Diet = (typeof DIETS)[number];
 export const MEAL_TYPES = ['fruehstueck', 'mittag', 'abend', 'snack'] as const;
 export type MealType = (typeof MEAL_TYPES)[number];
 
+export const PREFERENCES = ['schnell', 'lowcarb'] as const;
+export type Preference = (typeof PREFERENCES)[number];
+
 export const CATEGORIES = [
   'obst-gemuese',
   'fleisch-fisch',
@@ -81,6 +84,8 @@ export interface PlanSettings {
   /** Wie viele verschiedene Gerichte pro Mahlzeit und Kochtag. */
   recipesPerSlot: number;
   excludeIngredients: string[];
+  /** Weiche Kriterien: passende Gerichte werden stark bevorzugt. */
+  preferences: Preference[];
 }
 
 export interface PlannedMeal {

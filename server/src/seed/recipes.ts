@@ -1,6 +1,8 @@
 import { parseIngredient } from '../domain/ingredients.ts';
 import type { Diet, MealType, RecipeInput } from '../types.ts';
 import { SEED_V2 } from './recipes-v2.ts';
+import { SEED_V3 } from './recipes-v3.ts';
+import { SEED_V3_QUICK } from './recipes-v3-quick.ts';
 
 export interface SeedRecipe {
   title: string;
@@ -684,6 +686,7 @@ const SEED: SeedRecipe[] = [
 const SEED_SETS: { version: number; recipes: SeedRecipe[] }[] = [
   { version: 1, recipes: SEED },
   { version: 2, recipes: SEED_V2 },
+  { version: 3, recipes: [...SEED_V3, ...SEED_V3_QUICK] },
 ];
 
 export const SEED_VERSION = Math.max(...SEED_SETS.map((s) => s.version));

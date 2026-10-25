@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, type Diet, type MealType, type PlanSettings } from '../api.ts';
-import { DAY_SHORT, DIET_LABEL, formatDate, MEAL_LABEL, nextMonday } from '../labels.ts';
+import { api, type Diet, type MealType, type PlanSettings, type Preference } from '../api.ts';
+import { DAY_SHORT, DIET_LABEL, formatDate, MEAL_LABEL, nextMonday, PREFERENCE_HINT, PREFERENCE_LABEL } from '../labels.ts';
 
 const DEFAULTS: PlanSettings = {
   weekStart: nextMonday(),
@@ -13,6 +13,7 @@ const DEFAULTS: PlanSettings = {
   prepSessions: 1,
   recipesPerSlot: 2,
   excludeIngredients: [],
+  preferences: [],
 };
 
 function toggle<T>(list: T[], value: T): T[] {
@@ -33,7 +34,7 @@ export function PlannerPage() {
       .then((plans) => {
         if (!plans.length) return;
         const last = plans[0].settings;
-        setSettings({ ...last, weekStart: nextMonday() });
+        setSettings({ ...DEFAULTS, ...last, weekStart: nextMonday() });
         setExclude(last.excludeIngredients.join(', '));
       })
       .catch(() => {});
@@ -170,6 +171,30 @@ export function PlannerPage() {
             <small>pro Kochtag – jedes Gericht reicht für mindestens 2 Tage</small>
           </div>
         </div>
+
+        <fieldset className="field">
+          <legend>Bevorzugt</legend>
+          <div className="chips">
+            {(Object.keys(PREFERENCE_LABEL) as Preference[]).map((p) => (
+              <button
+                type="button"
+                key={p}
+                className={`chip ${settings.preferences.includes(p) ? 'on' : ''}`}
+                aria-pressed={settings.preferences.includes(p)}
+                title={PREFERENCE_HINT[p]}
+                onClick={() => set('preferences', toggle(settings.preferences, p))}
+              >
+                {p === 'schnell' ? '⚡ ' : '🥗 '}
+                {PREFERENCE_LABEL[p]}
+              </button>
+            ))}
+          </div>
+          <small>
+            {settings.preferences.length
+              ? `Nur ${settings.preferences.map((p) => `${PREFERENCE_LABEL[p]} (${PREFERENCE_HINT[p]})`).join(' und ')} – andere Gerichte nur, wenn nichts Passendes übrig ist.`
+              : 'Optional: schnelle oder kohlenhydratarme Gerichte bevorzugen.'}
+          </small>
+        </fieldset>
 
         <fieldset className="field">
           <legend>Kochtage</legend>

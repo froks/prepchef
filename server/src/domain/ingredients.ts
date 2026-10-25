@@ -94,6 +94,9 @@ const CATEGORY_OVERRIDES: [string, Category][] = [
   ['haferdrink', 'milch-kuehl'],
   ['sojadrink', 'milch-kuehl'],
   ['hefeflocken', 'trockenwaren'],
+  ['artischocke', 'konserven'],
+  ['hummus', 'milch-kuehl'],
+  ['gnocchi', 'milch-kuehl'],
   ['saft', 'getraenke'],
 ];
 
@@ -115,15 +118,15 @@ const CATEGORY_KEYWORDS: [Category, string[]][] = [
   ['brot-backwaren', ['brot', 'brötchen', 'toast', 'wrap', 'tortilla', 'fladenbrot', 'baguette', 'pita']],
   [
     'gewuerze-oele',
-    ['salz', 'pfeffer', 'öl', 'essig', 'paprikapulver', 'curry', 'kreuzkümmel', 'kurkuma', 'zimt', 'chili', 'oregano', 'thymian', 'basilikum getrocknet', 'gewürz', 'brühe', 'senf', 'sojasauce', 'sojasoße', 'honig', 'sirup', 'zucker', 'garam masala', 'muskat', 'lorbeer', 'ingwerpulver', 'knoblauchpulver', 'sesam', 'tahin', 'erdnussbutter', 'vanille', 'backpulver', 'natron', 'kümmel', 'majoran'],
+    ['salz', 'pfeffer', 'öl', 'essig', 'paprikapulver', 'curry', 'kreuzkümmel', 'kurkuma', 'zimt', 'chili', 'oregano', 'thymian', 'basilikum getrocknet', 'gewürz', 'brühe', 'senf', 'sojasauce', 'sojasoße', 'honig', 'sirup', 'zucker', 'garam masala', 'muskat', 'lorbeer', 'ingwerpulver', 'knoblauchpulver', 'sesam', 'tahin', 'erdnussbutter', 'vanille', 'backpulver', 'natron', 'kümmel', 'majoran', 'safran', 'sriracha', 'austernsauce', 'fischsauce', 'bbq', 'ras el', 'harissa'],
   ],
   [
     'trockenwaren',
-    ['nudel', 'spaghetti', 'penne', 'fusilli', 'pasta', 'reis', 'quinoa', 'couscous', 'bulgur', 'linsen', 'haferflocken', 'mehl', 'grieß', 'nüsse', 'mandeln', 'cashew', 'walnüsse', 'erdnüsse', 'chiasamen', 'leinsamen', 'datteln', 'rosinen', 'kakao', 'polenta', 'hirse', 'glasnudeln', 'mie', 'lasagneplatte', 'semmelbrösel', 'kerne', 'kokosraspeln', 'stärke', 'schokolade'],
+    ['nudel', 'spaghetti', 'penne', 'fusilli', 'pasta', 'reis', 'quinoa', 'couscous', 'bulgur', 'linsen', 'haferflocken', 'mehl', 'grieß', 'nüsse', 'mandeln', 'cashew', 'walnüsse', 'erdnüsse', 'chiasamen', 'leinsamen', 'datteln', 'rosinen', 'kakao', 'polenta', 'hirse', 'glasnudeln', 'mie', 'lasagneplatte', 'semmelbrösel', 'kerne', 'kokosraspeln', 'stärke', 'schokolade', 'orzo'],
   ],
   [
     'obst-gemuese',
-    ['zwiebel', 'knoblauch', 'tomate', 'paprika', 'karotte', 'möhre', 'kartoffel', 'süßkartoffel', 'brokkoli', 'blumenkohl', 'zucchini', 'aubergine', 'spinat', 'salat', 'gurke', 'lauch', 'porree', 'sellerie', 'kürbis', 'pilz', 'champignon', 'ingwer', 'zitrone', 'limette', 'apfel', 'banane', 'beeren', 'avocado', 'petersilie', 'koriander', 'basilikum', 'schnittlauch', 'minze', 'frühlingszwiebel', 'erbsen', 'bohnen', 'kohl', 'rote bete', 'mango', 'orange', 'birne', 'radieschen', 'rucola', 'edamame', 'äpfel', 'dill', 'rosmarin', 'salbei', 'kräuter'],
+    ['zwiebel', 'knoblauch', 'tomate', 'paprika', 'karotte', 'möhre', 'kartoffel', 'süßkartoffel', 'brokkoli', 'blumenkohl', 'zucchini', 'aubergine', 'spinat', 'salat', 'gurke', 'lauch', 'porree', 'sellerie', 'kürbis', 'pilz', 'champignon', 'ingwer', 'zitrone', 'limette', 'apfel', 'banane', 'beeren', 'avocado', 'petersilie', 'koriander', 'basilikum', 'schnittlauch', 'minze', 'frühlingszwiebel', 'erbsen', 'bohnen', 'kohl', 'rote bete', 'mango', 'orange', 'birne', 'radieschen', 'rucola', 'edamame', 'äpfel', 'dill', 'rosmarin', 'salbei', 'kräuter', 'fenchel', 'pak choi', 'kohlrabi', 'zitronengras'],
   ],
 ];
 
@@ -173,7 +176,7 @@ export function isStaple(name: string): boolean {
 
 // Nicht nur „hack" – das träfe auch „gehackte Tomaten".
 const MEAT = ['hähnchen', 'huhn', 'hühner', 'pute', 'rind', 'schwein', 'hackfleisch', 'hackbällchen', 'rinderhack', 'schweinehack', 'speck', 'schinken', 'wurst', 'würstchen', 'wiener', 'bacon', 'frikadelle', 'lamm', 'chorizo', 'salami', 'gelatine', 'kalb', 'ente', 'gans'];
-const FISH = ['lachs', 'thunfisch', 'fisch', 'garnele', 'shrimp', 'kabeljau', 'sardelle', 'forelle'];
+const FISH = ['lachs', 'thunfisch', 'fisch', 'garnele', 'shrimp', 'kabeljau', 'sardelle', 'forelle', 'auster', 'seelachs', 'makrele'];
 const ANIMAL = ['milch', 'joghurt', 'quark', 'sahne', 'käse', 'feta', 'mozzarella', 'parmesan', 'butter', 'skyr', 'schmand', 'honig', 'crème fraîche', 'frischkäse', 'cheddar', 'gouda', 'emmentaler', 'ricotta', 'mascarpone', 'halloumi'];
 const PLANT_EXCEPTIONS = ['kokosmilch', 'hafermilch', 'sojamilch', 'mandelmilch', 'sojajoghurt', 'pflanzlich', 'vegan', 'erdnussbutter', 'kakaobutter'];
 

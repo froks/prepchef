@@ -105,3 +105,15 @@ test('neue Grundrezepte werden nachgeliefert, gelöschte kommen nicht zurück', 
   const after = (await again.inject('/api/recipes')).json().map((r: { title: string }) => r.title);
   assert.ok(!after.includes('Minestrone'), 'bei erneutem Start nicht wieder angelegt');
 });
+
+test('alte Pläne ohne Präferenzen bleiben lesbar', async () => {
+  const db = openDatabase(':memory:');
+  const app = await buildApp({ db });
+  const { preferences: _, ...old } = baseSettings;
+  db.prepare('INSERT INTO plans (settings, data) VALUES (?, ?)').run(JSON.stringify(old), JSON.stringify({ meals: [], sessions: [], warnings: [] }));
+  const plan = (await app.inject('/api/plans/1')).json();
+  assert.deepEqual(plan.settings.preferences, []);
+  const created = await app.inject({ method: 'POST', url: '/api/plans', payload: { ...old, preferences: ['lowcarb'] } });
+  assert.deepEqual(created.json().settings.preferences, ['lowcarb']);
+  assert.equal((await app.inject({ method: 'POST', url: '/api/plans', payload: { ...old, preferences: ['vegan'] } })).statusCode, 400);
+});

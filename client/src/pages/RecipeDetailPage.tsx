@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { isLowCarb, isQuick } from '../../../server/src/domain/traits.ts';
 import { api } from '../api.ts';
-import { DIET_LABEL, formatAmount, formatMinutes, MEAL_LABEL } from '../labels.ts';
+import { DIET_LABEL, formatAmount, formatMinutes, MEAL_LABEL, PREFERENCE_HINT } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
 
 export function RecipeDetailPage() {
@@ -45,7 +46,14 @@ export function RecipeDetailPage() {
                 {MEAL_LABEL[m]}
               </span>
             ))}
-            <span className="tag">⏱ {formatMinutes(totalMinutes)}</span>
+            <span className={`tag ${isQuick(recipe) ? 'quick' : ''}`}>
+              {isQuick(recipe) ? '⚡' : '⏱'} {formatMinutes(totalMinutes)}
+            </span>
+            {isLowCarb(recipe) && (
+              <span className="tag lowcarb" title={PREFERENCE_HINT.lowcarb}>
+                Low Carb
+              </span>
+            )}
             <span className="tag">🧊 {recipe.fridgeDays} Tage haltbar</span>
             {recipe.freezable && <span className="tag">❄️ einfrierbar</span>}
             {recipe.tags.map((t) => (

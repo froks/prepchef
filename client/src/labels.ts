@@ -1,4 +1,15 @@
-import type { Category, Diet, MealType } from './api.ts';
+import { LOW_CARB_MAX_GRAMS, QUICK_MAX_MINUTES } from '../../server/src/domain/traits.ts';
+import type { Category, Diet, MealType, Preference } from './api.ts';
+
+export const PREFERENCE_LABEL: Record<Preference, string> = {
+  schnell: 'Schnell',
+  lowcarb: 'Low Carb',
+};
+
+export const PREFERENCE_HINT: Record<Preference, string> = {
+  schnell: `höchstens ${QUICK_MAX_MINUTES} Min.`,
+  lowcarb: `höchstens ${LOW_CARB_MAX_GRAMS} g Kohlenhydrate pro Portion`,
+};
 
 export const MEAL_LABEL: Record<MealType, string> = {
   fruehstueck: 'Frühstück',

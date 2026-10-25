@@ -6,7 +6,8 @@ type Row = Record<string, any>;
 function fromRow(row: Row): Plan {
   return {
     id: row.id,
-    settings: JSON.parse(row.settings),
+    // Pläne von vor Einführung der Präferenzen haben das Feld nicht.
+    settings: { preferences: [], ...JSON.parse(row.settings) },
     data: JSON.parse(row.data),
     checked: JSON.parse(row.checked),
     createdAt: row.created_at,

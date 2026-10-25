@@ -341,6 +341,14 @@ label.inline input[type='number'] {
   color: var(--muted);
   padding: 2px 4px;
 }
+.tag.quick {
+  background: color-mix(in srgb, var(--c1) 18%, transparent);
+  color: var(--text);
+}
+.tag.lowcarb {
+  background: color-mix(in srgb, var(--c2) 18%, transparent);
+  color: var(--text);
+}
 .tag.diet-vegan,
 .tag.diet-vegetarisch {
   background: var(--accent-soft);

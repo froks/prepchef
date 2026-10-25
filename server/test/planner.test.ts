@@ -49,7 +49,8 @@ test('respektiert Ernährungsform und Ausschlüsse', () => {
 });
 
 test('warnt, wenn nichts passt', () => {
-  const plan = generatePlan({ ...baseSettings, slots: ['snack'], diet: 'vegan', excludeIngredients: ['kichererbsen', 'datteln', 'chia'] }, recipes);
+  const noSnacks = recipes.filter((r) => !r.mealTypes.includes('snack'));
+  const plan = generatePlan({ ...baseSettings, slots: ['snack'] }, noSnacks);
   assert.ok(plan.meals.every((m) => m.recipeId == null));
   assert.match(plan.warnings[0], /Kein passendes Rezept für Snack/);
 });
@@ -84,4 +85,25 @@ test('Kalorienziel wird anteilig auf die geplanten Mahlzeiten verteilt', async (
   assert.equal(plannedKcalTarget({ ...baseSettings, kcalTarget: 2000, slots: ['mittag'] }), 700);
   assert.equal(plannedKcalTarget({ ...baseSettings, kcalTarget: 2000, slots: ['fruehstueck', 'mittag', 'abend', 'snack'] }), 2000);
   assert.equal(plannedKcalTarget({ ...baseSettings, kcalTarget: null }), null);
+});
+
+test('Präferenzen „schnell" und „Low Carb" werden bevorzugt', async () => {
+  const { isLowCarb, isQuick } = await import('../src/domain/traits.ts');
+  for (const seed of [1, 2, 3, 4, 5]) {
+    const plan = generatePlan({ ...baseSettings, preferences: ['schnell', 'lowcarb'] }, recipes, { random: seededRandom(seed) });
+    for (const m of plan.meals) {
+      const r = byId.get(m.recipeId!)!;
+      assert.ok(isQuick(r) && isLowCarb(r), `${r.title} ist nicht schnell und low carb`);
+    }
+  }
+  const lowCarbBreakfast = generatePlan({ ...baseSettings, slots: ['fruehstueck'], preferences: ['lowcarb'] }, recipes, { random: seededRandom() });
+  for (const m of lowCarbBreakfast.meals) assert.ok(isLowCarb(byId.get(m.recipeId!)!), byId.get(m.recipeId!)!.title);
+});
+
+test('genug schnelle und Low-Carb-Rezepte für abwechslungsreiche Pläne', async () => {
+  const { isLowCarb, isQuick } = await import('../src/domain/traits.ts');
+  const mains = recipes.filter((r) => r.mealTypes.includes('mittag') || r.mealTypes.includes('abend'));
+  assert.ok(mains.filter(isQuick).length >= 12, 'schnelle Hauptgerichte');
+  assert.ok(mains.filter(isLowCarb).length >= 12, 'Low-Carb-Hauptgerichte');
+  assert.ok(recipes.filter((r) => r.mealTypes.includes('fruehstueck') && isLowCarb(r)).length >= 4, 'Low-Carb-Frühstück');
 });

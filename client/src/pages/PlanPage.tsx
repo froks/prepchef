@@ -5,7 +5,7 @@ import { NutritionView } from '../components/NutritionView.tsx';
 import { PrepTimeline } from '../components/PrepTimeline.tsx';
 import { ShoppingList } from '../components/ShoppingList.tsx';
 import { WeekGrid } from '../components/WeekGrid.tsx';
-import { DIET_LABEL, formatDate, MEAL_LABEL } from '../labels.ts';
+import { DIET_LABEL, formatDate, MEAL_LABEL, PREFERENCE_LABEL } from '../labels.ts';
 import { useAsync } from '../useAsync.ts';
 
 const TABS = [
@@ -65,6 +65,7 @@ export function PlanPage() {
             {s.persons} {s.persons === 1 ? 'Person' : 'Personen'} · {s.slots.map((m) => MEAL_LABEL[m]).join(', ')} ·{' '}
             {DIET_LABEL[s.diet]}
             {s.kcalTarget ? ` · Ziel ${s.kcalTarget} kcal` : ''}
+            {s.preferences.map((p) => ` · ${PREFERENCE_LABEL[p]}`).join('')}
           </p>
         </div>
         <div className="head-actions no-print">

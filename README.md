@@ -26,7 +26,7 @@ bun run start      # http://127.0.0.1:3001
 | `HOST`         | `127.0.0.1`         | Bind-Adresse             |
 | `PREPCHEF_DB`  | `data/prepchef.db`  | Pfad zur SQLite-Datei    |
 
-Beim ersten Start wird die Datenbank mit 46 Grundrezepten befüllt. Kommen in einer neuen Version Grundrezepte
+Beim ersten Start wird die Datenbank mit 96 Grundrezepten befüllt. Kommen in einer neuen Version Grundrezepte
 hinzu, werden sie in bestehende Datenbanken nachgeliefert – selbst gelöschte Grundrezepte bleiben gelöscht.
 
 ## Funktionen
@@ -34,6 +34,9 @@ hinzu, werden sie in bestehende Datenbanken nachgeliefert – selbst gelöschte 
 - **Planer:** Tage, Mahlzeiten, Personen, Kalorienziel, Ernährungsform, Ausschlüsse, ein oder zwei Kochtage.
   Bevorzugt Gerichte mit gemeinsamen Zutaten, achtet auf Haltbarkeit (kurz Haltbares zuerst essen, sonst einfrieren),
   Abwechslung (Tags, zuletzt gekochte Gerichte) und Favoriten. Einzelne Gerichte lassen sich austauschen.
+- **Präferenzen „Schnell“ und „Low Carb“:** werden aus den Rezeptdaten abgeleitet – schnell = höchstens 30 Min.
+  Gesamtzeit laut Schritten, Low Carb = höchstens 25 g Kohlenhydrate pro Portion (`server/src/domain/traits.ts`).
+  Im Planer stark bevorzugt, in der Rezeptliste als Filter.
 - **Einkaufsliste:** skaliert auf Personen × Mahlzeiten, rechnet Einheiten um (g/kg, ml/l, TL/EL), fasst
   Singular/Plural zusammen, sortiert nach Supermarkt-Bereichen, abhakbar, als Text kopierbar.
 - **Prep-Ablauf:** Zeitplan für eine Person in der Küche – aktive Schritte nacheinander, passive (Ofen, Köcheln,
