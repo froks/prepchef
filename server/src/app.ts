@@ -1,0 +1,258 @@
+import { existsSync } from 'node:fs';
+import type { DatabaseSync } from 'node:sqlite';
+import fastifyStatic from '@fastify/static';
+import Fastify from 'fastify';
+import { ImportError, importFromUrl } from './domain/importer.ts';
+import { summarizeNutrition } from './domain/nutrition.ts';
+import { generatePlan, plannedKcalTarget, swapRecipe } from './domain/planner.ts';
+import { buildShoppingList } from './domain/shopping.ts';
+import { buildTimelines } from './domain/timeline.ts';
+import { PlanRepo } from './repo/plans.ts';
+import { RecipeRepo } from './repo/recipes.ts';
+import { seedRecipes } from './seed/recipes.ts';
+import type { MealType, Plan, PlanSettings, Recipe, RecipeInput } from './types.ts';
+import { CATEGORIES, DIETS, MEAL_TYPES } from './types.ts';
+
+export interface AppOptions {
+  db: DatabaseSync;
+  /** Gebautes Frontend, das im Produktionsbetrieb mit ausgeliefert wird. */
+  staticDir?: string;
+  fetchImpl?: typeof fetch;
+  logger?: boolean;
+}
+
+const idParams = {
+  type: 'object',
+  properties: { id: { type: 'integer', minimum: 1 } },
+  required: ['id'],
+} as const;
+
+const recipeBody = {
+  type: 'object',
+  required: ['title', 'servings', 'mealTypes', 'diet', 'ingredients', 'steps'],
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 200 },
+    description: { type: 'string', maxLength: 5000, default: '' },
+    servings: { type: 'integer', minimum: 1, maximum: 50 },
+    mealTypes: { type: 'array', minItems: 1, uniqueItems: true, items: { enum: MEAL_TYPES } },
+    diet: { enum: DIETS },
+    tags: { type: 'array', items: { type: 'string', maxLength: 50 }, default: [] },
+    ingredients: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          amount: { type: ['number', 'null'], minimum: 0, default: null },
+          unit: { type: 'string', default: '' },
+          category: { enum: CATEGORIES, default: 'sonstiges' },
+          note: { type: 'string' },
+        },
+      },
+    },
+    steps: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['text'],
+        properties: {
+          text: { type: 'string', minLength: 1 },
+          minutes: { type: 'integer', minimum: 0, maximum: 1440, default: 5 },
+          passive: { type: 'boolean', default: false },
+        },
+      },
+    },
+    nutrition: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          required: ['kcal', 'protein', 'carbs', 'fat'],
+          properties: {
+            kcal: { type: 'number', minimum: 0 },
+            protein: { type: 'number', minimum: 0 },
+            carbs: { type: 'number', minimum: 0 },
+            fat: { type: 'number', minimum: 0 },
+          },
+        },
+      ],
+      default: null,
+    },
+    fridgeDays: { type: 'integer', minimum: 0, maximum: 30, default: 3 },
+    freezable: { type: 'boolean', default: false },
+    favorite: { type: 'boolean', default: false },
+    sourceUrl: { type: ['string', 'null'], default: null },
+    imageUrl: { type: ['string', 'null'], default: null },
+  },
+} as const;
+
+const planSettingsBody = {
+  type: 'object',
+  required: ['weekStart', 'days', 'slots', 'persons', 'diet'],
+  properties: {
+    weekStart: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$' },
+    days: { type: 'array', minItems: 1, uniqueItems: true, items: { type: 'integer', minimum: 0, maximum: 6 } },
+    slots: { type: 'array', minItems: 1, uniqueItems: true, items: { enum: MEAL_TYPES } },
+    persons: { type: 'integer', minimum: 1, maximum: 20 },
+    kcalTarget: { type: ['integer', 'null'], minimum: 800, maximum: 6000, default: null },
+    diet: { enum: DIETS },
+    prepSessions: { enum: [1, 2], default: 1 },
+    recipesPerSlot: { type: 'integer', minimum: 1, maximum: 7, default: 2 },
+    excludeIngredients: { type: 'array', items: { type: 'string' }, default: [] },
+  },
+} as const;
+
+export async function buildApp(opts: AppOptions) {
+  const app = Fastify({ logger: opts.logger ?? false });
+  const recipes = new RecipeRepo(opts.db);
+  const plans = new PlanRepo(opts.db);
+
+  if (recipes.count() === 0) {
+    for (const r of seedRecipes()) recipes.create(r);
+  }
+
+  /** Plan inklusive aller abgeleiteten Ansichten. */
+  function expandPlan(plan: Plan) {
+    const all = new Map<number, Recipe>(recipes.list().map((r) => [r.id, r]));
+    const used = new Map<number, Recipe>();
+    for (const m of plan.data.meals) {
+      const r = m.recipeId != null ? all.get(m.recipeId) : undefined;
+      if (r) used.set(r.id, r);
+    }
+    return {
+      ...plan,
+      recipes: Object.fromEntries(used),
+      shopping: buildShoppingList(plan.data, plan.settings.persons, used),
+      timelines: buildTimelines(plan.data, plan.settings.persons, used),
+      nutrition: summarizeNutrition(plan.data, used, plannedKcalTarget(plan.settings), plan.settings.kcalTarget),
+    };
+  }
+
+  app.setErrorHandler((err: any, _req, reply) => {
+    if (err.validation) return reply.code(400).send({ error: `Ungültige Eingabe: ${err.message}` });
+    app.log.error(err);
+    return reply.code(err.statusCode ?? 500).send({ error: err.statusCode ? err.message : 'Interner Fehler' });
+  });
+
+  // --- Rezepte ---
+
+  app.get('/api/recipes', async () => recipes.list());
+
+  app.get<{ Params: { id: number } }>('/api/recipes/:id', { schema: { params: idParams } }, async (req, reply) => {
+    return recipes.get(req.params.id) ?? reply.code(404).send({ error: 'Rezept nicht gefunden' });
+  });
+
+  app.post<{ Body: RecipeInput }>('/api/recipes', { schema: { body: recipeBody } }, async (req, reply) => {
+    return reply.code(201).send(recipes.create(req.body));
+  });
+
+  app.put<{ Params: { id: number }; Body: RecipeInput }>(
+    '/api/recipes/:id',
+    { schema: { params: idParams, body: recipeBody } },
+    async (req, reply) => recipes.update(req.params.id, req.body) ?? reply.code(404).send({ error: 'Rezept nicht gefunden' }),
+  );
+
+  app.patch<{ Params: { id: number }; Body: { favorite: boolean } }>(
+    '/api/recipes/:id/favorite',
+    {
+      schema: {
+        params: idParams,
+        body: { type: 'object', required: ['favorite'], properties: { favorite: { type: 'boolean' } } },
+      },
+    },
+    async (req, reply) =>
+      recipes.setFavorite(req.params.id, req.body.favorite) ?? reply.code(404).send({ error: 'Rezept nicht gefunden' }),
+  );
+
+  app.delete<{ Params: { id: number } }>('/api/recipes/:id', { schema: { params: idParams } }, async (req, reply) => {
+    return recipes.delete(req.params.id) ? reply.code(204).send() : reply.code(404).send({ error: 'Rezept nicht gefunden' });
+  });
+
+  app.post<{ Body: { url: string } }>(
+    '/api/import',
+    { schema: { body: { type: 'object', required: ['url'], properties: { url: { type: 'string', minLength: 1 } } } } },
+    async (req, reply) => {
+      try {
+        return await importFromUrl(req.body.url, opts.fetchImpl);
+      } catch (err) {
+        if (err instanceof ImportError) return reply.code(422).send({ error: err.message });
+        throw err;
+      }
+    },
+  );
+
+  // --- Pläne ---
+
+  app.get('/api/plans', async () =>
+    plans.list().map((p) => ({
+      id: p.id,
+      createdAt: p.createdAt,
+      settings: p.settings,
+      mealCount: p.data.meals.filter((m) => m.recipeId != null).length,
+      recipeCount: new Set(p.data.meals.map((m) => m.recipeId).filter((id) => id != null)).size,
+    })),
+  );
+
+  app.get<{ Params: { id: number } }>('/api/plans/:id', { schema: { params: idParams } }, async (req, reply) => {
+    const plan = plans.get(req.params.id);
+    return plan ? expandPlan(plan) : reply.code(404).send({ error: 'Plan nicht gefunden' });
+  });
+
+  app.post<{ Body: PlanSettings }>('/api/plans', { schema: { body: planSettingsBody } }, async (req, reply) => {
+    const data = generatePlan(req.body, recipes.list(), { recentlyUsed: plans.recentRecipeIds() });
+    return reply.code(201).send(expandPlan(plans.create(req.body, data)));
+  });
+
+  app.post<{ Params: { id: number }; Body: { session: number; slot: MealType; recipeId: number } }>(
+    '/api/plans/:id/swap',
+    {
+      schema: {
+        params: idParams,
+        body: {
+          type: 'object',
+          required: ['session', 'slot', 'recipeId'],
+          properties: {
+            session: { type: 'integer', minimum: 0 },
+            slot: { enum: MEAL_TYPES },
+            recipeId: { type: 'integer' },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const plan = plans.get(req.params.id);
+      if (!plan) return reply.code(404).send({ error: 'Plan nicht gefunden' });
+      const data = swapRecipe(plan.data, plan.settings, recipes.list(), req.body);
+      return expandPlan(plans.updateData(plan.id, data)!);
+    },
+  );
+
+  app.put<{ Params: { id: number }; Body: { checked: string[] } }>(
+    '/api/plans/:id/checked',
+    {
+      schema: {
+        params: idParams,
+        body: { type: 'object', required: ['checked'], properties: { checked: { type: 'array', items: { type: 'string' } } } },
+      },
+    },
+    async (req, reply) => {
+      const plan = plans.setChecked(req.params.id, req.body.checked);
+      return plan ? { checked: plan.checked } : reply.code(404).send({ error: 'Plan nicht gefunden' });
+    },
+  );
+
+  app.delete<{ Params: { id: number } }>('/api/plans/:id', { schema: { params: idParams } }, async (req, reply) => {
+    return plans.delete(req.params.id) ? reply.code(204).send() : reply.code(404).send({ error: 'Plan nicht gefunden' });
+  });
+
+  if (opts.staticDir && existsSync(opts.staticDir)) {
+    await app.register(fastifyStatic, { root: opts.staticDir });
+    // Client-seitiges Routing: unbekannte Nicht-API-Pfade liefern die SPA aus.
+    app.setNotFoundHandler((req, reply) =>
+      req.url.startsWith('/api/') ? reply.code(404).send({ error: 'Nicht gefunden' }) : reply.sendFile('index.html'),
+    );
+  }
+
+  return app;
+}
